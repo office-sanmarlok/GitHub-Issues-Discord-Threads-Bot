@@ -12,6 +12,7 @@ interface Thread {
   locked: boolean | null;
   lockArchiving?: boolean;
   lockLocking?: boolean;
+  mappingId?: string; // Reference to the repository mapping (optional for backward compatibility)
 }
 
 interface ThreadComment {
