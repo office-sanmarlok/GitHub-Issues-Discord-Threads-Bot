@@ -6,3 +6,8 @@ yarn.lock
 
 dist
 logs
+
+# Local files
+.serena/
+bot.log
+*.log
