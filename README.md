@@ -1,86 +1,207 @@
-# Managing GitHub Issues via Discord Threads
+# GitHub Issues Discord Threads Bot
 
-This Discord bot serves as a seamless bridge between Discord thread channel and GitHub repository issues, enabling efficient issue management and synchronization between the two platforms. This integration allows for efficient project management, ensuring that actions performed on either Discord or GitHub are reflected in both platforms, facilitating smoother collaboration and issue tracking across teams.
+A powerful bidirectional synchronization bot between Discord forum channels and GitHub repository issues. This enhanced version supports **multiple repository-channel mappings** within a single bot instance, enabling teams to manage issues from multiple GitHub repositories across different Discord channels.
 
-## Functionality Overview
+## 🌟 Key Features
+
+### Multi-Repository Support (New!)
+- **Multiple Mappings**: Manage 10+ repository-channel pairs simultaneously
+- **Complete Isolation**: Each mapping operates independently with its own data store
+- **JSON Configuration**: Easy-to-manage configuration file
+- **Health Monitoring**: Built-in health checks and metrics per mapping
+- **Error Isolation**: Failures in one mapping don't affect others
+- **Webhook Security**: Optional HMAC signature validation per repository
+
+### Core Synchronization Features
 
 #### Issues
-
--   \[x] Discord Post Creation -> Automatically generates a corresponding GitHub issue.
--   \[ ] GitHub Issue Creation -> Pending feature: Creation of Discord posts from GitHub issues.
+- ✅ Discord Thread Creation → GitHub Issue Creation
+- ✅ GitHub Issue Creation → Discord Thread Creation
+- ✅ Bidirectional state synchronization
 
 #### Comments
+- ✅ Discord Messages → GitHub Issue Comments
+- ✅ GitHub Comments → Discord Messages
+- ✅ User attribution with webhooks
 
--   \[x] Discord Post Comments -> Mirrored as comments on associated GitHub issues.
--   \[ ] GitHub Issue Comments -> Pending feature: Synchronization with Discord post comments.
+#### Thread/Issue Management
+- ✅ Open/Close state synchronization
+- ✅ Lock/Unlock state synchronization
+- ✅ Thread archiving ↔ Issue closing
+- ✅ Thread deletion → Issue deletion
 
 #### Tags & Labels
+- ✅ Discord Forum Tags → GitHub Issue Labels
+- ✅ Label synchronization on changes
+- ✅ Custom tag mapping per repository
 
--   \[x] Discord Post Tags -> Translated into GitHub issue labels for better categorization.
--   \[ ] Discord Post Tag Changes -> Future implementation: Update GitHub issue labels from Discord.
--   \[ ] GitHub Issue Label Changes -> Future implementation: Reflect changes in Discord post tags from GitHub.
+#### Attachments
+- ✅ Image support (png, jpeg)
+- ✅ Markdown formatting preservation
 
-#### Locking & Unlocking
+## 🚀 Quick Start
 
--   \[x] Discord Post Lock/Unlock -> Corresponding action on GitHub issues for security or access control.
--   \[x] GitHub Issue Lock/Unlock -> Syncing locking status with Discord posts.
+### Prerequisites
+- Node.js v18 or higher
+- Discord Bot with appropriate permissions
+- GitHub Personal Access Token
+- Server with public IP (for webhooks)
 
-#### Open/Close Management
+### Installation
 
--   \[x] Discord Post Open/Close -> Triggers opening or closing of related GitHub issues.
--   \[x] GitHub Issue Open/Close -> Update Discord post status based on GitHub issue status.
-
-#### Deletion Actions
-
--   \[x] Discord Post Deletion -> Initiates the removal of the associated GitHub issue.
--   \[x] GitHub Issue Deletion -> Sync deletion actions from GitHub to Discord posts.
-
-#### Attachment Support
-
--   \[x] Supported File Types: png, jpeg
--   \[ ] Planned Support: gif, text, video
-
-## Installation Steps
-
-#### Creating bot
-
-Create bot https://discord.com/developers/applications?new_application=true
-
-Bot settings:
-
--   \[x] PRESENCE INTENT
--   \[x] MESSAGE CONTENT INTENT
-
-Invite url: https://discord.com/api/oauth2/authorize?client_id=APPLICATION_ID&permissions=0&scope=bot
-
-#### env
-
--   DISCORD_TOKEN - Discord developer bot page "Settings->bot->reset token" (https://discord.com/developers/applications/APPLICATION_ID/bot)
--   DISCORD_CHANNEL_ID - In the Discord server, create a forum channel and right-click (RMB) to copy the channel ID (developer settings must be turned on for this). Alternatively, you can copy the ID from the link. Example:
-https://discord.com/channels/<GUILD_ID>/<DISCORD_CHANNEL_ID>
--   GITHUB_ACCESS_TOKEN 
-    1. [New Fine-grained Personal Access Token](https://github.com/settings/personal-access-tokens/new) or follow these steps: Settings -> Developer settings -> Personal access tokens -> Fine-grained tokens -> Generate new token.
-    2. In the "Repository access" section, select "Only select repositories" and choose the specific repositories you need access to.
-    3. In the "Permissions" section, click on "Repository permissions" and set "Issues" to "Read & Write".
-    4. Generate and copy the personal access token.
--   GITHUB_USERNAME - example: https://github.com/<GITHUB_USERNAME>/<GITHUB_REPOSITORY>
--   GITHUB_REPOSITORY
-
-> **_NOTE:_** For detailed information about personal access tokens, visit the [Managing your personal access tokens - GitHub Docs](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens).
-
-#### Start bot
-
+1. **Clone the repository**
 ```bash
-npm run dev
+git clone https://github.com/office-sanmarlok/GitHub-Issues-Discord-Threads-Bot.git
+cd GitHub-Issues-Discord-Threads-Bot
+npm install
 ```
 
-or
-
+2. **Migrate from legacy configuration** (if upgrading)
 ```bash
-npm run build && npm run start
+npm run migrate
 ```
 
-Forward for github webhooks:
-```bash
-ssh -R 80:localhost:5000 serveo.net
+3. **Configure** (`config.json`)
+```json
+{
+  "discord_token": "YOUR_DISCORD_BOT_TOKEN",
+  "github_access_token": "YOUR_GITHUB_TOKEN",
+  "webhook_port": 5000,
+  "webhook_path": "/webhook",
+  "mappings": [
+    {
+      "id": "project-frontend",
+      "channel_id": "DISCORD_CHANNEL_ID",
+      "repository": {
+        "owner": "github-username",
+        "name": "repository-name"
+      },
+      "webhook_secret": "optional_secret",
+      "enabled": true
+    }
+  ]
+}
 ```
+
+4. **Run the bot**
+```bash
+# Development
+npm run dev:enhanced
+
+# Production
+npm run build:tsc
+npm run start:enhanced
+```
+
+5. **Configure GitHub Webhooks**
+
+For each repository:
+- Go to Settings → Webhooks → Add webhook
+- URL: `https://your-server:5000/webhook`
+- Content type: `application/json`
+- Secret: (optional, use from config)
+- Events: Issues, Issue comments
+
+## 📁 Documentation
+
+- **Setup Guides**
+  - [Quick Start Guide](docs/guides/QUICKSTART.md)
+  - [EC2 Setup Guide](docs/guides/SETUP_GUIDE_EC2.md)
+  
+- **Development**
+  - [Requirements](docs/planning/requirements.md)
+  - [Design Document](docs/planning/design.md)
+  - [Implementation Tasks](docs/planning/tasks.md)
+  
+- **Legacy**
+  - [Single Repository Version](docs/legacy/README.legacy.md)
+
+## 🏗️ Architecture
+
+### Multi-Repository Architecture
+```
+Discord Channel 1 ←→ Bot (Store 1) ←→ GitHub Repository A
+Discord Channel 2 ←→ Bot (Store 2) ←→ GitHub Repository B
+Discord Channel 3 ←→ Bot (Store 3) ←→ GitHub Repository C
+```
+
+### Key Components
+- **ConfigManager**: JSON configuration management
+- **MultiStore**: Isolated data stores per mapping
+- **ContextProvider**: Mapping context routing
+- **WebhookRouter**: Repository identification and routing
+- **GitHubClientFactory**: Per-mapping API clients
+- **HealthMonitor**: System and mapping health tracking
+- **IsolatedErrorHandler**: Error isolation with retry logic
+
+## 🔧 Configuration
+
+### Main Configuration Options
+| Field | Description | Required |
+|-------|-------------|----------|
+| `discord_token` | Discord bot token | Yes |
+| `github_access_token` | GitHub personal access token | Yes |
+| `webhook_port` | Webhook server port (default: 5000) | No |
+| `webhook_path` | Webhook endpoint path (default: "/webhook") | No |
+| `mappings` | Array of repository-channel mappings | Yes |
+
+### Mapping Configuration
+| Field | Description | Required |
+|-------|-------------|----------|
+| `id` | Unique mapping identifier | Yes |
+| `channel_id` | Discord forum channel ID | Yes |
+| `repository.owner` | GitHub repository owner | Yes |
+| `repository.name` | GitHub repository name | Yes |
+| `webhook_secret` | HMAC signature secret | No |
+| `enabled` | Enable/disable mapping | No |
+
+## 📊 Monitoring
+
+### Health Endpoints
+```bash
+GET /health          # System health
+GET /health/{id}     # Mapping health
+GET /metrics         # Detailed metrics
+```
+
+### Health States
+- **🟢 Healthy**: Operating normally
+- **🟡 Degraded**: Some issues but functional
+- **🔴 Unhealthy**: Major issues requiring attention
+
+## 🧪 Testing
+
+```bash
+npm test              # Run tests
+npm run test:watch    # Watch mode
+npm run test:coverage # Coverage report
+```
+
+## 🔄 Migration from Single Repository
+
+If you're upgrading from the single-repository version:
+
+1. Run the migration script: `npm run migrate`
+2. Review and edit the generated `config.json`
+3. Test with: `npm run dev:enhanced`
+4. Update GitHub webhook URLs
+
+## 🤝 Contributing
+
+Contributions are welcome! Please ensure:
+- All tests pass
+- Code follows existing patterns
+- Documentation is updated
+- Error handling maintains isolation
+
+## 📝 License
+
+MIT
+
+## 🙏 Acknowledgments
+
+Original single-repository version by Nicat.
+
+---
+
+For detailed setup instructions, see [Quick Start Guide](docs/guides/QUICKSTART.md) or [EC2 Setup Guide](docs/guides/SETUP_GUIDE_EC2.md).
