@@ -1,46 +1,46 @@
-# Migration Guide: Single to Multi-Repository Support
+# 移行ガイド: シングルからマルチリポジトリサポートへ
 
-This guide helps you migrate from the single-repository version to the enhanced multi-repository version of the GitHub Issues Discord Threads Bot.
+このガイドは、シングルリポジトリ版から拡張マルチリポジトリ版の GitHub Issues Discord Threads Bot への移行を支援します。
 
-## Overview
+## 概要
 
-The enhanced version introduces significant architectural changes:
-- **Configuration**: Environment variables (`.env`) → JSON configuration (`config.json`)
-- **Data Storage**: Single store → Multiple isolated stores
-- **Event Handling**: Direct handlers → Context-based routing
-- **Error Handling**: Global → Per-mapping isolation
+拡張版では重要なアーキテクチャ変更が導入されています：
+- **設定**: 環境変数（`.env`） → JSON 設定（`config.json`）
+- **データストレージ**: 単一ストア → 複数の分離ストア
+- **イベントハンドリング**: 直接ハンドラー → コンテキストベースルーティング
+- **エラーハンドリング**: グローバル → マッピングごとの分離
 
-## Migration Steps
+## 移行手順
 
-### Step 1: Backup Current Configuration
+### ステップ 1: 現在の設定をバックアップ
 
-Before starting, backup your existing configuration:
+開始前に、既存の設定をバックアップしてください：
 
 ```bash
 cp .env .env.backup
 ```
 
-### Step 2: Install Dependencies
+### ステップ 2: 依存関係をインストール
 
-Update and install new dependencies:
+新しい依存関係を更新・インストール：
 
 ```bash
 npm install
 ```
 
-### Step 3: Run Migration Script
+### ステップ 3: 移行スクリプトを実行
 
-Use the automated migration tool to convert your `.env` file:
+自動移行ツールを使用して `.env` ファイルを変換：
 
 ```bash
 npm run migrate
 ```
 
-This creates a `config.json` file based on your `.env` configuration.
+これにより `.env` 設定に基づいた `config.json` ファイルが作成されます。
 
-### Step 4: Review Generated Configuration
+### ステップ 4: 生成された設定を確認
 
-Open `config.json` and verify the migrated settings:
+`config.json` を開いて移行された設定を確認：
 
 ```json
 {
@@ -65,9 +65,9 @@ Open `config.json` and verify the migrated settings:
 }
 ```
 
-### Step 5: Add Additional Mappings (Optional)
+### ステップ 5: 追加マッピングを追加（オプション）
 
-To add more repository-channel mappings:
+さらにリポジトリ・チャンネルマッピングを追加するには：
 
 ```json
 "mappings": [
@@ -94,144 +94,144 @@ To add more repository-channel mappings:
 ]
 ```
 
-### Step 6: Update GitHub Webhooks
+### ステップ 6: GitHub Webhook を更新
 
-The webhook endpoint remains the same (`/webhook`), but now supports multiple repositories:
+Webhook エンドポイントは同じ（`/webhook`）ですが、複数のリポジトリをサポートするようになりました：
 
-1. Go to each repository's Settings → Webhooks
-2. Update or create webhook:
+1. 各リポジトリの Settings → Webhooks へ移動
+2. Webhook を更新または作成：
    - **URL**: `https://your-server:5000/webhook`
    - **Content type**: `application/json`
-   - **Secret**: Use the `webhook_secret` from your mapping
-   - **Events**: Issues, Issue comments
+   - **Secret**: マッピングの `webhook_secret` を使用
+   - **Events**: Issues、Issue comments
 
-### Step 7: Test the Migration
+### ステップ 7: 移行をテスト
 
-Run in development mode to test:
+開発モードで実行してテスト：
 
 ```bash
 npm run dev:enhanced
 ```
 
-Verify:
-- Bot connects to Discord ✓
-- Existing threads are loaded ✓
-- New issues sync correctly ✓
-- Comments sync bidirectionally ✓
+確認事項：
+- Bot が Discord に接続する ✓
+- 既存のスレッドが読み込まれる ✓
+- 新しい Issue が正しく同期される ✓
+- コメントが双方向で同期される ✓
 
-### Step 8: Deploy to Production
+### ステップ 8: 本番環境へデプロイ
 
-Once testing is complete:
+テスト完了後：
 
 ```bash
-# Build the TypeScript code
+# TypeScript コードをビルド
 npm run build:tsc
 
-# Run in production
+# 本番環境で実行
 npm run start:enhanced
 ```
 
-## Configuration Mapping Reference
+## 設定マッピングリファレンス
 
-| `.env` Variable | `config.json` Field | Notes |
-|----------------|---------------------|-------|
-| `DISCORD_TOKEN` | `discord_token` | Direct mapping |
-| `GITHUB_ACCESS_TOKEN` | `github_access_token` | Direct mapping |
-| `DISCORD_CHANNEL_ID` | `mappings[].channel_id` | Now per-mapping |
-| `GITHUB_USERNAME` | `mappings[].repository.owner` | Now per-mapping |
-| `GITHUB_REPOSITORY` | `mappings[].repository.name` | Now per-mapping |
-| `WEBHOOK_SECRET` | `mappings[].webhook_secret` | Now per-mapping, optional |
-| `WEBHOOK_PORT` | `webhook_port` | Direct mapping |
-| `WEBHOOK_PATH` | `webhook_path` | Direct mapping |
-| `LOG_LEVEL` | `log_level` | Direct mapping |
+| `.env` 変数 | `config.json` フィールド | 備考 |
+|-------------|-------------------------|------|
+| `DISCORD_TOKEN` | `discord_token` | 直接マッピング |
+| `GITHUB_ACCESS_TOKEN` | `github_access_token` | 直接マッピング |
+| `DISCORD_CHANNEL_ID` | `mappings[].channel_id` | マッピングごと |
+| `GITHUB_USERNAME` | `mappings[].repository.owner` | マッピングごと |
+| `GITHUB_REPOSITORY` | `mappings[].repository.name` | マッピングごと |
+| `WEBHOOK_SECRET` | `mappings[].webhook_secret` | マッピングごと、オプション |
+| `WEBHOOK_PORT` | `webhook_port` | 直接マッピング |
+| `WEBHOOK_PATH` | `webhook_path` | 直接マッピング |
+| `LOG_LEVEL` | `log_level` | 直接マッピング |
 
-## New Features Available
+## 利用可能な新機能
 
-After migration, you can take advantage of:
+移行後、以下を活用できます：
 
-1. **Multiple Repository Support**
-   - Add up to 10+ repository-channel mappings
-   - Each mapping operates independently
+1. **複数リポジトリサポート**
+   - 10個以上のリポジトリ・チャンネルマッピングを追加
+   - 各マッピングは独立して動作
 
-2. **Health Monitoring**
+2. **ヘルスモニタリング**
    ```bash
    curl http://localhost:5000/health
    curl http://localhost:5000/metrics
    ```
 
-3. **Per-Mapping Configuration**
-   - Individual webhook secrets
-   - Enable/disable specific mappings
-   - Custom sync options per mapping
+3. **マッピングごとの設定**
+   - 個別の Webhook シークレット
+   - 特定マッピングの有効/無効切り替え
+   - マッピングごとのカスタム同期オプション
 
-4. **Improved Error Handling**
-   - Isolated error handling per mapping
-   - Circuit breaker protection
-   - Exponential backoff retry logic
+4. **改善されたエラーハンドリング**
+   - マッピングごとの分離エラーハンドリング
+   - サーキットブレーカー保護
+   - 指数バックオフリトライロジック
 
-## Rollback Procedure
+## ロールバック手順
 
-If you need to rollback to the single-repository version:
+シングルリポジトリ版にロールバックする必要がある場合：
 
-1. Restore your `.env` file:
+1. `.env` ファイルを復元：
    ```bash
    cp .env.backup .env
    ```
 
-2. Run the original version:
+2. オリジナル版を実行：
    ```bash
-   npm run dev  # or npm start
+   npm run dev  # または npm start
    ```
 
-## Troubleshooting
+## トラブルシューティング
 
-### Issue: Bot doesn't start
-- Check `config.json` syntax (valid JSON)
-- Verify Discord token is correct
-- Ensure all required fields are present
+### 問題: Bot が起動しない
+- `config.json` の構文を確認（有効な JSON）
+- Discord トークンが正しいことを確認
+- すべての必須フィールドが存在することを確認
 
-### Issue: Webhooks not received
-- Check webhook secret matches configuration
-- Verify webhook URL is accessible
-- Use `/health/{mapping-id}` to check mapping status
+### 問題: Webhook が受信されない
+- Webhook シークレットが設定と一致することを確認
+- Webhook URL がアクセス可能であることを確認
+- `/health/{mapping-id}` でマッピング状態を確認
 
-### Issue: Existing threads not syncing
-- Ensure channel IDs are correct
-- Check bot has permissions in Discord channels
-- Verify GitHub token has required permissions
+### 問題: 既存のスレッドが同期しない
+- チャンネル ID が正しいことを確認
+- Bot が Discord チャンネルの権限を持っていることを確認
+- GitHub トークンが必要な権限を持っていることを確認
 
-### Issue: High memory usage
-- Review number of active mappings
-- Check health metrics at `/metrics`
-- Consider disabling unused mappings
+### 問題: メモリ使用量が高い
+- アクティブなマッピング数を確認
+- `/metrics` でヘルスメトリクスを確認
+- 使用していないマッピングの無効化を検討
 
-## Getting Help
+## ヘルプを得る
 
-- Check logs for detailed error messages
-- Use debug mode: `"log_level": "debug"`
-- Review health status: `/health`
-- Check metrics: `/metrics`
+- 詳細なエラーメッセージのログを確認
+- デバッグモードを使用: `"log_level": "debug"`
+- ヘルス状態を確認: `/health`
+- メトリクスを確認: `/metrics`
 
-## Best Practices
+## ベストプラクティス
 
-1. **Start with one mapping** to verify everything works
-2. **Add mappings gradually** to identify any issues
-3. **Use webhook secrets** for security
-4. **Monitor health endpoints** regularly
-5. **Keep config.json in .gitignore** to protect secrets
-6. **Backup config.json** before making changes
+1. **1つのマッピングから開始**して動作を確認
+2. **段階的にマッピングを追加**して問題を特定
+3. セキュリティのため **Webhook シークレットを使用**
+4. **ヘルスエンドポイントを定期的に監視**
+5. シークレット保護のため **config.json を .gitignore に保持**
+6. 変更前に **config.json をバックアップ**
 
-## Security Considerations
+## セキュリティに関する考慮事項
 
-- Never commit `config.json` to version control
-- Use different webhook secrets for each repository
-- Rotate GitHub access tokens periodically
-- Monitor failed webhook attempts in logs
-- Use HTTPS for webhook endpoints in production
+- `config.json` をバージョン管理にコミットしない
+- 各リポジトリに異なる Webhook シークレットを使用
+- GitHub アクセストークンを定期的にローテーション
+- ログで失敗した Webhook 試行を監視
+- 本番環境では Webhook エンドポイントに HTTPS を使用
 
 ---
 
-For additional help, see:
-- [Quick Start Guide](QUICKSTART.md)
-- [EC2 Setup Guide](SETUP_GUIDE_EC2.md)
-- [Main README](../../README.md)
+追加のヘルプについては：
+- [クイックスタートガイド](QUICKSTART.md)
+- [EC2 セットアップガイド](SETUP_GUIDE_EC2.md)
+- [メイン README](../../README.md)

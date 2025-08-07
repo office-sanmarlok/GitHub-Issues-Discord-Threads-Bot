@@ -1,67 +1,67 @@
 # GitHub Issues Discord Threads Bot
 
-A powerful bidirectional synchronization bot between Discord forum channels and GitHub repository issues. This enhanced version supports **multiple repository-channel mappings** within a single bot instance, enabling teams to manage issues from multiple GitHub repositories across different Discord channels.
+Discord フォーラムチャンネルと GitHub リポジトリの Issue を双方向同期する強力なボット。この拡張版では、単一のボットインスタンスで**複数のリポジトリ・チャンネルマッピング**をサポートし、チームが異なる Discord チャンネルで複数の GitHub リポジトリの Issue を管理できます。
 
-## 🌟 Key Features
+## 🌟 主な機能
 
-### Multi-Repository Support (New!)
-- **Multiple Mappings**: Manage 10+ repository-channel pairs simultaneously
-- **Complete Isolation**: Each mapping operates independently with its own data store
-- **JSON Configuration**: Easy-to-manage configuration file
-- **Health Monitoring**: Built-in health checks and metrics per mapping
-- **Error Isolation**: Failures in one mapping don't affect others
-- **Webhook Security**: Optional HMAC signature validation per repository
+### マルチリポジトリサポート（新機能！）
+- **複数マッピング**: 10個以上のリポジトリ・チャンネルペアを同時管理
+- **完全な分離**: 各マッピングは独自のデータストアで独立動作
+- **JSON設定**: 管理しやすい設定ファイル
+- **ヘルスモニタリング**: マッピングごとのヘルスチェックとメトリクス内蔵
+- **エラー分離**: 1つのマッピングの障害が他に影響しない
+- **Webhookセキュリティ**: リポジトリごとのHMAC署名検証（オプション）
 
-### Core Synchronization Features
+### コア同期機能
 
 #### Issues
-- ✅ Discord Thread Creation → GitHub Issue Creation
-- ✅ GitHub Issue Creation → Discord Thread Creation
-- ✅ Bidirectional state synchronization
+- ✅ Discord スレッド作成 → GitHub Issue 作成
+- ✅ GitHub Issue 作成 → Discord スレッド作成
+- ✅ 双方向の状態同期
 
-#### Comments
-- ✅ Discord Messages → GitHub Issue Comments
-- ✅ GitHub Comments → Discord Messages
-- ✅ User attribution with webhooks
+#### コメント
+- ✅ Discord メッセージ → GitHub Issue コメント
+- ✅ GitHub コメント → Discord メッセージ
+- ✅ Webhook によるユーザー属性付与
 
-#### Thread/Issue Management
-- ✅ Open/Close state synchronization
-- ✅ Lock/Unlock state synchronization
-- ✅ Thread archiving ↔ Issue closing
-- ✅ Thread deletion → Issue deletion
+#### スレッド/Issue 管理
+- ✅ オープン/クローズ状態の同期
+- ✅ ロック/アンロック状態の同期
+- ✅ スレッドアーカイブ ↔ Issue クローズ
+- ✅ スレッド削除 → Issue 削除
 
-#### Tags & Labels
-- ✅ Discord Forum Tags → GitHub Issue Labels
-- ✅ Label synchronization on changes
-- ✅ Custom tag mapping per repository
+#### タグ & ラベル
+- ✅ Discord フォーラムタグ → GitHub Issue ラベル
+- ✅ 変更時のラベル同期
+- ✅ リポジトリごとのカスタムタグマッピング
 
-#### Attachments
-- ✅ Image support (png, jpeg)
-- ✅ Markdown formatting preservation
+#### 添付ファイル
+- ✅ 画像サポート（png、jpeg）
+- ✅ Markdown フォーマットの保持
 
-## 🚀 Quick Start
+## 🚀 クイックスタート
 
-### Prerequisites
-- Node.js v18 or higher
-- Discord Bot with appropriate permissions
+### 前提条件
+- Node.js v18 以降
+- 適切な権限を持つ Discord Bot
 - GitHub Personal Access Token
-- Server with public IP (for webhooks)
+- 公開 IP を持つサーバー（Webhook 用）
 
-### Installation
+### インストール
 
-1. **Clone the repository**
+1. **リポジトリをクローン**
 ```bash
 git clone https://github.com/office-sanmarlok/GitHub-Issues-Discord-Threads-Bot.git
 cd GitHub-Issues-Discord-Threads-Bot
 npm install
 ```
 
-2. **Migrate from legacy configuration** (if upgrading)
+2. **レガシー設定から移行**（アップグレードの場合）
 ```bash
 npm run migrate
 ```
 
-3. **Configure** (`config.json`)
+3. **設定**（`config.json`）
 ```json
 {
   "discord_token": "YOUR_DISCORD_BOT_TOKEN",
@@ -83,66 +83,68 @@ npm run migrate
 }
 ```
 
-4. **Run the bot**
+4. **ボットを実行**
 ```bash
-# Development
+# 開発環境
 npm run dev:enhanced
 
-# Production
+# 本番環境
 npm run build:tsc
 npm run start:enhanced
 ```
 
-5. **Configure GitHub Webhooks**
+5. **GitHub Webhook を設定**
 
-For each repository:
-- Go to Settings → Webhooks → Add webhook
+各リポジトリで：
+- Settings → Webhooks → Add webhook
 - URL: `https://your-server:5000/webhook`
 - Content type: `application/json`
-- Secret: (optional, use from config)
-- Events: Issues, Issue comments
+- Secret: （オプション、設定から使用）
+- Events: Issues、Issue comments
 
-## 📁 Documentation
+## 📁 ドキュメント
 
-- **Setup Guides**
-  - [Quick Start Guide](docs/guides/QUICKSTART.md)
-  - [EC2 Setup Guide](docs/guides/SETUP_GUIDE_EC2.md)
+- **セットアップガイド**
+  - [クイックスタートガイド](docs/guides/QUICKSTART.md)
+  - [EC2 セットアップガイド](docs/guides/SETUP_GUIDE_EC2.md)
+  - [設定リファレンス](docs/guides/CONFIG.md)
   
-- **Development**
-  - [Requirements](docs/planning/requirements.md)
-  - [Design Document](docs/planning/design.md)
-  - [Implementation Tasks](docs/planning/tasks.md)
+- **開発**
+  - [移行ガイド](docs/guides/MIGRATION.md)
+  - [要件定義](docs/planning/requirements.md)
+  - [設計ドキュメント](docs/planning/design.md)
+  - [実装タスク](docs/planning/tasks.md)
   
-- **Legacy**
-  - [Single Repository Version](docs/legacy/README.legacy.md)
+- **レガシー**
+  - [シングルリポジトリ版](docs/legacy/README.legacy.md)
 
-## 🏗️ Architecture
+## 🏗️ アーキテクチャ
 
-### Multi-Repository Architecture
+### マルチリポジトリアーキテクチャ
 ```
-Discord Channel 1 ←→ Bot (Store 1) ←→ GitHub Repository A
-Discord Channel 2 ←→ Bot (Store 2) ←→ GitHub Repository B
-Discord Channel 3 ←→ Bot (Store 3) ←→ GitHub Repository C
+Discord チャンネル 1 ←→ Bot (Store 1) ←→ GitHub リポジトリ A
+Discord チャンネル 2 ←→ Bot (Store 2) ←→ GitHub リポジトリ B
+Discord チャンネル 3 ←→ Bot (Store 3) ←→ GitHub リポジトリ C
 ```
 
-### Key Components
-- **ConfigManager**: JSON configuration management
-- **MultiStore**: Isolated data stores per mapping
-- **ContextProvider**: Mapping context routing
-- **WebhookRouter**: Repository identification and routing
-- **GitHubClientFactory**: Per-mapping API clients
-- **HealthMonitor**: System and mapping health tracking
-- **IsolatedErrorHandler**: Error isolation with retry logic
+### 主要コンポーネント
+- **ConfigManager**: JSON 設定管理
+- **MultiStore**: マッピングごとの分離データストア
+- **ContextProvider**: マッピングコンテキストルーティング
+- **WebhookRouter**: リポジトリ識別とルーティング
+- **GitHubClientFactory**: マッピングごとの API クライアント
+- **HealthMonitor**: システムとマッピングのヘルストラッキング
+- **IsolatedErrorHandler**: リトライロジック付きエラー分離
 
 ## 🔧 設定（config.json）
 
 ### 基本設定
 | フィールド | 説明 | 必須 | デフォルト |
 |-----------|------|------|-----------|
-| `discord_token` | Discord Botトークン | ✅ | - |
+| `discord_token` | Discord Bot トークン | ✅ | - |
 | `github_access_token` | GitHub アクセストークン | ✅ | - |
-| `webhook_port` | Webhookサーバーポート | ❌ | 5000 |
-| `webhook_path` | Webhookエンドポイントパス | ❌ | "/webhook" |
+| `webhook_port` | Webhook サーバーポート | ❌ | 5000 |
+| `webhook_path` | Webhook エンドポイントパス | ❌ | "/webhook" |
 | `log_level` | ログレベル（debug/info/warn/error） | ❌ | "info" |
 | `health_check_interval` | ヘルスチェック間隔（ミリ秒） | ❌ | 60000 |
 | `mappings` | リポジトリ・チャンネルマッピング配列 | ✅ | - |
@@ -151,63 +153,74 @@ Discord Channel 3 ←→ Bot (Store 3) ←→ GitHub Repository C
 | フィールド | 説明 | 必須 | デフォルト |
 |-----------|------|------|-----------|
 | `id` | マッピング識別子 | ✅ | - |
-| `channel_id` | Discord フォーラムチャンネルID | ✅ | - |
-| `repository.owner` | GitHubリポジトリ所有者 | ✅ | - |
-| `repository.name` | GitHubリポジトリ名 | ✅ | - |
-| `webhook_secret` | Webhook署名検証用（推奨） | ❌ | null |
+| `channel_id` | Discord フォーラムチャンネル ID | ✅ | - |
+| `repository.owner` | GitHub リポジトリ所有者 | ✅ | - |
+| `repository.name` | GitHub リポジトリ名 | ✅ | - |
+| `webhook_secret` | Webhook 署名検証用（推奨） | ❌ | null |
 | `enabled` | マッピングの有効/無効 | ❌ | true |
 | `options.sync_labels` | ラベル同期の有効化 | ❌ | true |
 | `options.sync_assignees` | 担当者同期の有効化 | ❌ | false |
 
 📖 **詳細な設定ガイド**: [CONFIG.md](docs/guides/CONFIG.md)
 
-## 📊 Monitoring
+## 📊 モニタリング
 
-### Health Endpoints
+### ヘルスエンドポイント
 ```bash
-GET /health          # System health
-GET /health/{id}     # Mapping health
-GET /metrics         # Detailed metrics
+GET /health          # システムヘルス
+GET /health/{id}     # マッピングヘルス
+GET /metrics         # 詳細メトリクス
 ```
 
-### Health States
-- **🟢 Healthy**: Operating normally
-- **🟡 Degraded**: Some issues but functional
-- **🔴 Unhealthy**: Major issues requiring attention
+### ヘルス状態
+- **🟢 Healthy**: 正常動作中
+- **🟡 Degraded**: 一部問題があるが動作中
+- **🔴 Unhealthy**: 重大な問題で要対応
 
-## 🧪 Testing
+## 🧪 テスト
 
 ```bash
-npm test              # Run tests
-npm run test:watch    # Watch mode
-npm run test:coverage # Coverage report
+npm test              # テスト実行
+npm run test:watch    # ウォッチモード
+npm run test:coverage # カバレッジレポート
 ```
 
-## 🔄 Migration from Single Repository
+## 🔄 シングルリポジトリからの移行
 
-If you're upgrading from the single-repository version:
+シングルリポジトリ版からアップグレードする場合：
 
-1. Run the migration script: `npm run migrate`
-2. Review and edit the generated `config.json`
-3. Test with: `npm run dev:enhanced`
-4. Update GitHub webhook URLs
+1. 移行スクリプトを実行: `npm run migrate`
+2. 生成された `config.json` を確認・編集
+3. テスト: `npm run dev:enhanced`
+4. GitHub Webhook URL を更新
 
-## 🤝 Contributing
+## 🛠️ サーバー管理
 
-Contributions are welcome! Please ensure:
-- All tests pass
-- Code follows existing patterns
-- Documentation is updated
-- Error handling maintains isolation
+便利な管理スクリプト：
 
-## 📝 License
+```bash
+./scripts/start.sh    # ボット起動
+./scripts/stop.sh     # ボット停止
+./scripts/restart.sh  # ボット再起動
+./scripts/status.sh   # 状態確認
+```
+
+## 🤝 コントリビューション
+
+コントリビューションを歓迎します！以下を確認してください：
+- すべてのテストがパス
+- 既存のパターンに従うコード
+- ドキュメントの更新
+- エラーハンドリングが分離を維持
+
+## 📝 ライセンス
 
 MIT
 
-## 🙏 Acknowledgments
+## 🙏 謝辞
 
-Original single-repository version by Nicat.
+オリジナルのシングルリポジトリ版作者: Nicat
 
 ---
 
-For detailed setup instructions, see [Quick Start Guide](docs/guides/QUICKSTART.md) or [EC2 Setup Guide](docs/guides/SETUP_GUIDE_EC2.md).
+詳細なセットアップ手順は [クイックスタートガイド](docs/guides/QUICKSTART.md) または [EC2 セットアップガイド](docs/guides/SETUP_GUIDE_EC2.md) を参照してください。
