@@ -1,136 +1,230 @@
 # config.json 設定ガイド
 
-## 設定ファイルの構造
+このガイドでは、config.jsonの各設定項目を**実際に書く順番**で説明します。
+
+## 基本的な構造
 
 ```json
 {
-  "discord_token": "Discord Botのトークン",
-  "github_access_token": "GitHubのアクセストークン",
+  "discord_token": "ここにDiscord Botのトークン",
+  "github_access_token": "ここにGitHubのトークン",
   "webhook_port": 5000,
   "webhook_path": "/webhook",
   "log_level": "info",
   "health_check_interval": 60000,
   "mappings": [
-    {
-      "id": "一意の識別子",
-      "channel_id": "DiscordチャンネルID",
-      "repository": {
-        "owner": "GitHubユーザー名または組織名",
-        "name": "リポジトリ名"
-      },
-      "webhook_secret": "Webhook検証用シークレット（省略可）",
-      "enabled": true,
-      "options": {
-        "sync_labels": true,
-        "sync_assignees": false
-      }
-    }
+    // ここにリポジトリとチャンネルの対応を書く
   ]
 }
 ```
 
-## メイン設定
+## 設定項目の詳細（上から順に）
 
-| フィールド | 型 | 必須 | デフォルト | 説明 |
-|-----------|-----|------|------------|------|
-| `discord_token` | string | ✅ | - | Discord Botのトークン |
-| `github_access_token` | string | ✅ | - | GitHub Personal Access Token |
-| `webhook_port` | number | ❌ | 5000 | Webhookサーバーのポート番号 |
-| `webhook_path` | string | ❌ | "/webhook" | Webhookエンドポイントのパス |
-| `log_level` | string | ❌ | "info" | ログレベル（debug/info/warn/error） |
-| `health_check_interval` | number | ❌ | 60000 | ヘルスチェック間隔（ミリ秒） |
-| `mappings` | array | ✅ | - | リポジトリとチャンネルのマッピング配列 |
+### 1. discord_token（必須）
 
-## マッピング設定
+Discord Botのトークンです。
 
-| フィールド | 型 | 必須 | デフォルト | 説明 |
-|-----------|-----|------|------------|------|
-| `id` | string | ✅ | - | マッピングの一意識別子（英数字推奨） |
-| `channel_id` | string | ✅ | - | Discord フォーラムチャンネルのID |
-| `repository.owner` | string | ✅ | - | GitHubリポジトリの所有者 |
-| `repository.name` | string | ✅ | - | GitHubリポジトリ名 |
-| `webhook_secret` | string | ❌ | null | Webhook署名検証用シークレット |
-| `enabled` | boolean | ❌ | true | このマッピングの有効/無効 |
-| `options` | object | ❌ | {} | 追加オプション |
+```json
+"discord_token": "MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GqWerty.1234567890abcdefghijklmnop"
+```
 
-## webhook_secret について
+**取得方法:**
+1. [Discord Developer Portal](https://discord.com/developers/applications)にアクセス
+2. アプリケーション作成 → Bot → Reset Token
+3. トークンをコピー
 
-### セキュリティレベル
+### 2. github_access_token（必須）
 
-#### 🔓 設定なし（開発環境向け）
+GitHubのPersonal Access Tokenです。
+
+```json
+"github_access_token": "ghp_1234567890abcdefghijklmnopqrstuvwxyz"
+```
+
+**取得方法:**
+1. GitHub → Settings → Developer settings
+2. Personal access tokens → Tokens (classic) → Generate new token
+3. 権限: `repo`（プライベートリポジトリ）または `public_repo`（パブリックのみ）
+
+### 3. webhook_port（省略可）
+
+Webhookを受け取るポート番号です。
+
+```json
+"webhook_port": 5000  // デフォルト: 5000
+```
+
+- 省略すると5000番ポートを使用
+- AWSやファイアウォールでこのポートを開放する必要あり
+- 他のサービスと被る場合は変更
+
+### 4. webhook_path（省略可）
+
+WebhookのURLパスです。
+
+```json
+"webhook_path": "/webhook"  // デフォルト: "/webhook"
+```
+
+- 省略すると`/webhook`を使用
+- 完全なURL: `https://あなたのサーバー:5000/webhook`
+- セキュリティのため変更可能（例: `/github-hook-2024`）
+
+### 5. log_level（省略可）
+
+ログの詳細度です。
+
+```json
+"log_level": "info"  // デフォルト: "info"
+```
+
+**選択肢:**
+- `"debug"` - すべての詳細情報（開発・デバッグ時）
+- `"info"` - 通常の動作情報（デフォルト）
+- `"warn"` - 警告のみ
+- `"error"` - エラーのみ
+
+### 6. health_check_interval（省略可）
+
+システムの健康状態をチェックする間隔（ミリ秒）です。
+
+```json
+"health_check_interval": 60000  // デフォルト: 60000（1分）
+```
+
+- 60000 = 1分ごとにチェック
+- 各マッピングのエラー率や接続状態を監視
+- `/health`エンドポイントで確認可能
+
+### 7. mappings（必須）
+
+リポジトリとDiscordチャンネルの対応リストです。**配列なので`[]`で囲む**。
+
+```json
+"mappings": [
+  {
+    // 1つ目のマッピング
+  },
+  {
+    // 2つ目のマッピング
+  }
+]
+```
+
+## mappings内の各項目（上から順に）
+
+各マッピングは以下の構造です：
+
 ```json
 {
-  "webhook_secret": null
+  "id": "project1",
+  "channel_id": "1234567890123456789",
+  "repository": {
+    "owner": "your-username",
+    "name": "your-repo"
+  },
+  "webhook_secret": "your-secret-key",
+  "enabled": true,
+  "options": {
+    "sync_labels": true,
+    "sync_assignees": false
+  }
 }
 ```
-- 署名検証をスキップ
-- 誰でもWebhookエンドポイントにアクセス可能
-- **本番環境では非推奨**
 
-#### 🔒 設定あり（本番環境推奨）
+### 7.1. id（必須）
+
+このマッピングの識別名です。
+
 ```json
-{
-  "webhook_secret": "your-secret-string-here"
+"id": "frontend"  // 英数字とハイフンのみ推奨
+```
+
+- 一意である必要がある
+- ログやヘルスチェックで使用
+- 例: `"frontend"`, `"backend-api"`, `"docs"`
+
+### 7.2. channel_id（必須）
+
+Discord フォーラムチャンネルのIDです。
+
+```json
+"channel_id": "1234567890123456789"  // 18桁の数字
+```
+
+**取得方法:**
+1. Discord設定 → 詳細設定 → 開発者モード ON
+2. フォーラムチャンネルを右クリック → IDをコピー
+
+### 7.3. repository（必須）
+
+GitHubリポジトリの情報です。
+
+```json
+"repository": {
+  "owner": "octocat",      // ユーザー名または組織名
+  "name": "hello-world"    // リポジトリ名
 }
 ```
-- GitHubがリクエストにHMAC-SHA256署名を付与
-- Botが署名を検証してなりすましを防止
-- **GitHub側でも同じシークレットを設定する必要あり**
 
-### GitHub側での設定方法
+- URLが `https://github.com/octocat/hello-world` の場合
+  - owner: `"octocat"`
+  - name: `"hello-world"`
+
+### 7.4. webhook_secret（省略可、推奨）
+
+Webhook検証用の秘密鍵です。
+
+```json
+"webhook_secret": "my-secret-key-2024"
+```
+
+**重要:**
+- 設定しない場合、誰でもWebhookを送信可能（セキュリティリスク）
+- 設定する場合、GitHub側でも同じ値を設定する必要あり
+
+**GitHub側の設定:**
 1. リポジトリ → Settings → Webhooks
-2. Add webhook または既存のWebhookを編集
-3. **Secret**欄に`webhook_secret`と同じ文字列を入力
+2. Add webhook または編集
+3. Secret欄に同じ文字列を入力
 
-## enabled について
+### 7.5. enabled（省略可）
 
-マッピングごとの有効/無効スイッチです。
-
-### 使用例
+このマッピングを有効にするかどうかです。
 
 ```json
-{
-  "mappings": [
-    {
-      "id": "production",
-      "enabled": true   // ✅ アクティブ
-    },
-    {
-      "id": "staging",
-      "enabled": false  // ⏸️ 一時停止中
-    }
-  ]
+"enabled": true  // デフォルト: true
+```
+
+- `true` - このマッピングは動作する
+- `false` - 設定は残るが無効（一時停止）
+
+**使用例:**
+- テスト中: `false`にして他のマッピングだけテスト
+- トラブル時: 問題のあるマッピングだけ`false`に
+
+### 7.6. options（省略可）
+
+追加オプションです。
+
+```json
+"options": {
+  "sync_labels": true,      // デフォルト: true
+  "sync_assignees": false   // デフォルト: false
 }
 ```
 
-### 活用シーン
-- **開発中**: 特定のマッピングだけテスト
-- **トラブル時**: 問題のあるマッピングを一時無効化
-- **段階的導入**: 1つずつマッピングを有効化
-- **メンテナンス**: 設定を残したまま一時停止
+- `sync_labels` - GitHubラベルとDiscordタグを同期
+- `sync_assignees` - 担当者情報を同期（未実装）
 
-## options について
+## 完全な設定例
 
-マッピングごとの詳細な動作設定です。
+### 最小構成（1つのリポジトリ）
 
-| オプション | 型 | デフォルト | 説明 |
-|-----------|-----|------------|------|
-| `sync_labels` | boolean | true | GitHubラベルとDiscordタグの同期 |
-| `sync_assignees` | boolean | false | 担当者情報の同期 |
-
-### 将来の拡張予定
-- `sync_milestones`: マイルストーンの同期
-- `sync_projects`: プロジェクトボードとの連携
-- `auto_close_stale`: 古いIssueの自動クローズ
-- `mention_users`: ユーザーメンションの変換
-
-## 実際の設定例
-
-### 最小構成（シングルリポジトリ）
 ```json
 {
-  "discord_token": "MTIzNDU2Nzg5...",
-  "github_access_token": "ghp_xxxxxxxxxxxxx",
+  "discord_token": "MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GqWerty.xxx",
+  "github_access_token": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "mappings": [
     {
       "id": "main",
@@ -144,11 +238,12 @@
 }
 ```
 
-### 本番環境（マルチリポジトリ）
+### 標準構成（複数リポジトリ、セキュリティあり）
+
 ```json
 {
-  "discord_token": "MTIzNDU2Nzg5...",
-  "github_access_token": "ghp_xxxxxxxxxxxxx",
+  "discord_token": "MTIzNDU2Nzg5MDEyMzQ1Njc4OQ.GqWerty.xxx",
+  "github_access_token": "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
   "webhook_port": 5000,
   "webhook_path": "/webhook",
   "log_level": "info",
@@ -158,81 +253,79 @@
       "id": "frontend",
       "channel_id": "1111111111111111111",
       "repository": {
-        "owner": "my-org",
+        "owner": "my-company",
         "name": "frontend-app"
       },
-      "webhook_secret": "frontend_secret_key_2024",
+      "webhook_secret": "frontend_secret_2024",
       "enabled": true,
       "options": {
-        "sync_labels": true,
-        "sync_assignees": true
+        "sync_labels": true
       }
     },
     {
       "id": "backend",
       "channel_id": "2222222222222222222",
       "repository": {
-        "owner": "my-org",
+        "owner": "my-company",
         "name": "backend-api"
       },
-      "webhook_secret": "backend_secret_key_2024",
-      "enabled": true,
-      "options": {
-        "sync_labels": true,
-        "sync_assignees": false
-      }
+      "webhook_secret": "backend_secret_2024",
+      "enabled": true
     },
     {
-      "id": "docs",
+      "id": "test-repo",
       "channel_id": "3333333333333333333",
       "repository": {
-        "owner": "my-org",
-        "name": "documentation"
+        "owner": "my-company",
+        "name": "test-project"
       },
-      "enabled": false  // 準備中
+      "enabled": false  // 準備中なので無効
     }
   ]
 }
 ```
 
-## Discord チャンネルIDの取得方法
+## よくある質問
 
-1. Discord開発者モードを有効化
-   - 設定 → 詳細設定 → 開発者モード ON
-2. フォーラムチャンネルを右クリック
-3. 「IDをコピー」を選択
+### Q: webhook_secretは必須？
+A: いいえ、省略可能です。ただし本番環境では設定を強く推奨します。
 
-## GitHub アクセストークンの作成
+### Q: enabledをfalseにすると？
+A: その設定は残りますが、同期は行われません。設定を消さずに一時停止できます。
 
-1. GitHub → Settings → Developer settings
-2. Personal access tokens → Tokens (classic)
-3. Generate new token
-4. 必要な権限:
-   - `repo` (プライベートリポジトリの場合)
-   - `public_repo` (パブリックリポジトリのみの場合)
+### Q: ポート5000が使えない
+A: `webhook_port`を変更してください（例: 3000、8080など）。ファイアウォールの開放も忘れずに。
 
-## セキュリティに関する注意
+### Q: log_levelはどれがいい？
+A: 通常は`"info"`、問題調査時は`"debug"`、本番は`"warn"`か`"error"`。
 
-⚠️ **重要**: `config.json`には機密情報が含まれます！
+### Q: health_check_intervalは？
+A: デフォルトの60000（1分）で通常は十分です。
 
-- `.gitignore`に`config.json`を追加済み
-- 絶対にGitにコミットしない
-- 本番環境では環境変数や秘密管理サービスの使用を検討
-- `config.json.example`を参考用として提供
+## セキュリティ注意事項
+
+⚠️ **重要**
+- `config.json`を絶対にGitにコミットしない（.gitignore済み）
+- トークンは定期的に更新する
+- webhook_secretは推測困難な文字列にする
+- 本番環境では環境変数の使用も検討
 
 ## トラブルシューティング
 
+### Botが起動しない
+```bash
+# エラーログを確認
+npm run dev:enhanced
+# または
+cat bot.log
+```
+
 ### マッピングが動作しない
-- `enabled: true`になっているか確認
-- チャンネルIDが正しいか確認
-- Botがチャンネルにアクセス権限を持っているか確認
+1. `enabled: true`か確認
+2. channel_idが正しいか確認
+3. `/health/マッピングID`で状態確認
 
-### Webhookが受信されない
-- ポート番号が開放されているか確認
-- `webhook_secret`がGitHub側と一致しているか確認
-- `/health/{mapping-id}`でマッピングの状態を確認
-
-### エラーが発生する
-- `log_level: "debug"`にして詳細ログを確認
-- `/metrics`エンドポイントでエラー率を確認
-- 特定のマッピングだけ`enabled: false`にして切り分け
+### Webhookが来ない
+1. ポートが開いているか確認
+2. GitHub側のWebhook設定を確認
+3. webhook_secretが一致しているか確認
