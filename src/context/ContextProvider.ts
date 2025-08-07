@@ -39,6 +39,42 @@ export class ContextProvider implements IContextProvider {
   constructor(private multiStore: MultiStore) {}
 
   /**
+   * Create context from mapping
+   */
+  fromMapping(mapping: any): MappingContext | undefined {
+    const store = this.multiStore.getStore(mapping.id);
+    if (!store) {
+      logger.error(`Store not found for mapping ${mapping.id}`);
+      return undefined;
+    }
+
+    const repoCredentials: RepoCredentials = {
+      owner: mapping.repository.owner,
+      repo: mapping.repository.name
+    };
+
+    const contextLogger = new MappingContextualLogger(
+      mapping.id,
+      mapping.channel_id,
+      `${mapping.repository.owner}/${mapping.repository.name}`
+    );
+
+    return {
+      mapping,
+      store,
+      repoCredentials,
+      logger: contextLogger
+    };
+  }
+
+  /**
+   * Create context from Discord channel ID (alias for fromChannel)
+   */
+  fromChannelId(channelId: string): MappingContext | undefined {
+    return this.fromChannel(channelId);
+  }
+
+  /**
    * Create context from Discord channel ID
    */
   fromChannel(channelId: string): MappingContext | undefined {

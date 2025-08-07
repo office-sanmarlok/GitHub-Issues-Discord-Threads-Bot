@@ -5,11 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "dev:enhanced": "tsx watch src/EnhancedIndex.ts",
-    "start": "node .",
-    "start:enhanced": "node dist/EnhancedIndex.js",
-    "build": "webpack",
-    "build:tsc": "tsc",
+    "start": "node dist/index.js",
+    "build": "tsc",
     "migrate": "tsx scripts/migrate-config.ts",
     "test": "jest",
     "test:watch": "jest --watch",

@@ -1,10 +1,7 @@
 import winston, { format } from "winston";
-import { config } from "./config";
-import { Thread } from "./interfaces";
-import client from "./discord/discord";
 
 export const logger = winston.createLogger({
-  level: "info",
+  level: process.env.LOG_LEVEL || "info",
   format: format.combine(
     format.colorize({ all: true }),
     format.timestamp({
@@ -18,7 +15,7 @@ export const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console(),
-    // new winston.transports.File({ filename: "./logs/logs.log" }),
+    new winston.transports.File({ filename: "./bot.log" }),
   ],
 });
 
@@ -39,13 +36,3 @@ export const Actions = {
 } as const;
 
 export type ActionValue = (typeof Actions)[keyof typeof Actions];
-
-export const getDiscordUrl = (thread: Thread) => {
-  return `${
-    client.channels.cache.get(config.DISCORD_CHANNEL_ID)?.url
-  }/threads/${thread.id}`;
-};
-
-export const getGithubUrl = (thread: Thread) => {
-  return `https://github.com/${config.GITHUB_USERNAME}/${config.GITHUB_REPOSITORY}/issues/${thread.number}`;
-};

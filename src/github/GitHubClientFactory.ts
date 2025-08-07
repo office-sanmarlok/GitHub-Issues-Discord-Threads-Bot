@@ -1,7 +1,6 @@
 import { Octokit } from '@octokit/rest';
 import { graphql } from '@octokit/graphql';
 import { MappingContext } from '../types/contextTypes';
-import { config } from '../config';
 import { logger } from '../logger';
 
 export interface IssueData {
@@ -28,9 +27,8 @@ export class GitHubClientFactory {
   private graphqlClients: Map<string, typeof graphql> = new Map();
   private accessToken: string;
 
-  constructor(accessToken?: string) {
-    // Use provided token or fall back to config
-    this.accessToken = accessToken || config.GITHUB_ACCESS_TOKEN;
+  constructor(accessToken: string) {
+    this.accessToken = accessToken;
   }
 
   /**

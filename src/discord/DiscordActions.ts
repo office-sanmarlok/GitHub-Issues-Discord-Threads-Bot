@@ -2,7 +2,7 @@ import { Client, ForumChannel, MessagePayload, ThreadChannel } from "discord.js"
 import { MappingContext } from "../types/contextTypes";
 import { Thread } from "../interfaces";
 
-export class EnhancedDiscordActions {
+export class DiscordActions {
   constructor(private client: Client) {}
 
   async createThread(

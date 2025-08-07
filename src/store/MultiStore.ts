@@ -52,6 +52,13 @@ export class MultiStore {
   }
 
   /**
+   * Get store by mapping ID (alias for getStore)
+   */
+  getStoreByMappingId(mappingId: string): EnhancedStore | undefined {
+    return this.getStore(mappingId);
+  }
+
+  /**
    * Get store by Discord channel ID
    */
   getStoreByChannel(channelId: string): EnhancedStore | undefined {
@@ -101,6 +108,20 @@ export class MultiStore {
    */
   getMappingById(mappingId: string): RepositoryMapping | undefined {
     return this.mappings.get(mappingId);
+  }
+
+  /**
+   * Get all mappings
+   */
+  getAllMappings(): RepositoryMapping[] {
+    return Array.from(this.mappings.values());
+  }
+
+  /**
+   * Get mapping (alias for getMappingById)
+   */
+  getMapping(mappingId: string): RepositoryMapping | undefined {
+    return this.getMappingById(mappingId);
   }
 
   /**

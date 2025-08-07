@@ -1,12 +1,12 @@
 import { Client } from "discord.js";
 import { MappingContext, WebhookPayload } from "../types/contextTypes";
-import { EnhancedDiscordActions } from "../discord/EnhancedDiscordActions";
+import { DiscordActions } from "../discord/DiscordActions";
 
 export class GitHubWebhookHandlers {
-  private discordActions: EnhancedDiscordActions;
+  private discordActions: DiscordActions;
 
   constructor(client: Client) {
-    this.discordActions = new EnhancedDiscordActions(client);
+    this.discordActions = new DiscordActions(client);
   }
 
   /**

@@ -22,9 +22,9 @@ import {
   openIssue,
   lockIssue,
   unlockIssue,
-} from "./EnhancedGitHubActions";
+} from "./GitHubActions";
 
-export class EnhancedDiscordHandlers {
+export class DiscordHandlers {
   constructor(
     private multiStore: MultiStore,
     private contextProvider: ContextProvider,
