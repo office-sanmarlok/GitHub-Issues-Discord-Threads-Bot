@@ -9,6 +9,7 @@ User-facing guides and tutorials for setting up and using the bot.
 
 - **[QUICKSTART.md](./guides/QUICKSTART.md)** - Quick setup guide for getting started fast
 - **[SETUP_GUIDE_EC2.md](./guides/SETUP_GUIDE_EC2.md)** - Detailed AWS EC2 deployment guide
+- **[CONFIG.md](./guides/CONFIG.md)** - Complete config.json reference (日本語)
 - **[MIGRATION.md](./guides/MIGRATION.md)** - Migration guide from single to multi-repository version
 
 ### 📋 [/planning](./planning/)

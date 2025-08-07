@@ -134,26 +134,32 @@ Discord Channel 3 ←→ Bot (Store 3) ←→ GitHub Repository C
 - **HealthMonitor**: System and mapping health tracking
 - **IsolatedErrorHandler**: Error isolation with retry logic
 
-## 🔧 Configuration
+## 🔧 設定（config.json）
 
-### Main Configuration Options
-| Field | Description | Required |
-|-------|-------------|----------|
-| `discord_token` | Discord bot token | Yes |
-| `github_access_token` | GitHub personal access token | Yes |
-| `webhook_port` | Webhook server port (default: 5000) | No |
-| `webhook_path` | Webhook endpoint path (default: "/webhook") | No |
-| `mappings` | Array of repository-channel mappings | Yes |
+### 基本設定
+| フィールド | 説明 | 必須 | デフォルト |
+|-----------|------|------|-----------|
+| `discord_token` | Discord Botトークン | ✅ | - |
+| `github_access_token` | GitHub アクセストークン | ✅ | - |
+| `webhook_port` | Webhookサーバーポート | ❌ | 5000 |
+| `webhook_path` | Webhookエンドポイントパス | ❌ | "/webhook" |
+| `log_level` | ログレベル（debug/info/warn/error） | ❌ | "info" |
+| `health_check_interval` | ヘルスチェック間隔（ミリ秒） | ❌ | 60000 |
+| `mappings` | リポジトリ・チャンネルマッピング配列 | ✅ | - |
 
-### Mapping Configuration
-| Field | Description | Required |
-|-------|-------------|----------|
-| `id` | Unique mapping identifier | Yes |
-| `channel_id` | Discord forum channel ID | Yes |
-| `repository.owner` | GitHub repository owner | Yes |
-| `repository.name` | GitHub repository name | Yes |
-| `webhook_secret` | HMAC signature secret | No |
-| `enabled` | Enable/disable mapping | No |
+### マッピング設定
+| フィールド | 説明 | 必須 | デフォルト |
+|-----------|------|------|-----------|
+| `id` | マッピング識別子 | ✅ | - |
+| `channel_id` | Discord フォーラムチャンネルID | ✅ | - |
+| `repository.owner` | GitHubリポジトリ所有者 | ✅ | - |
+| `repository.name` | GitHubリポジトリ名 | ✅ | - |
+| `webhook_secret` | Webhook署名検証用（推奨） | ❌ | null |
+| `enabled` | マッピングの有効/無効 | ❌ | true |
+| `options.sync_labels` | ラベル同期の有効化 | ❌ | true |
+| `options.sync_assignees` | 担当者同期の有効化 | ❌ | false |
+
+📖 **詳細な設定ガイド**: [CONFIG.md](docs/guides/CONFIG.md)
 
 ## 📊 Monitoring
 
