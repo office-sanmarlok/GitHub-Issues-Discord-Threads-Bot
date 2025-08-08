@@ -253,6 +253,74 @@ export class MultiStore {
     logger.info('MultiStore cleared');
   }
 
+  
+  /**
+   * Dynamically add a new mapping and initialize its store
+   */
+  async addMapping(mapping: RepositoryMapping): Promise<void> {
+    try {
+      // Check if mapping already exists
+      if (this.mappings.has(mapping.id)) {
+        throw new Error(`Mapping already exists: ${mapping.id}`);
+      }
+      
+      // Create new store
+      const store = new EnhancedStore();
+      
+      // Add to collections
+      this.stores.set(mapping.id, store);
+      this.mappings.set(mapping.id, mapping);
+      this.channelToMapping.set(mapping.channel_id, mapping);
+      
+      const repoKey = this.getRepoKey(mapping.repository.owner, mapping.repository.name);
+      this.repoToMapping.set(repoKey, mapping);
+      
+      logger.info('Added mapping to MultiStore', {
+        id: mapping.id,
+        repo: `${mapping.repository.owner}/${mapping.repository.name}`,
+        channel: mapping.channel_id
+      });
+    } catch (error) {
+      logger.error('Failed to add mapping to MultiStore', error as Error);
+      throw error;
+    }
+  }
+  
+  /**
+   * Dynamically remove a mapping and its store
+   */
+  async removeMapping(mappingId: string): Promise<void> {
+    try {
+      // Get mapping
+      const mapping = this.mappings.get(mappingId);
+      if (!mapping) {
+        throw new Error(`Mapping not found: ${mappingId}`);
+      }
+      
+      // Clear and remove store
+      const store = this.stores.get(mappingId);
+      if (store) {
+        store.clear();
+        this.stores.delete(mappingId);
+      }
+      
+      // Remove from collections
+      this.mappings.delete(mappingId);
+      this.channelToMapping.delete(mapping.channel_id);
+      
+      const repoKey = this.getRepoKey(mapping.repository.owner, mapping.repository.name);
+      this.repoToMapping.delete(repoKey);
+      
+      logger.info('Removed mapping from MultiStore', {
+        id: mappingId,
+        repo: `${mapping.repository.owner}/${mapping.repository.name}`
+      });
+    } catch (error) {
+      logger.error('Failed to remove mapping from MultiStore', error as Error);
+      throw error;
+    }
+  }
+
   /**
    * Create repository key for lookups
    */

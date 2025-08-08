@@ -12,6 +12,11 @@ export interface BotConfig {
   webhook_path?: string;
   log_level?: 'debug' | 'info' | 'warn' | 'error';
   health_check_interval?: number;
+  forum_category_id?: string;
+  command_settings?: {
+    enable_auto_sync: boolean;
+    prefix: string;
+  };
   mappings: RepositoryMapping[];
 }
 
@@ -27,6 +32,12 @@ export interface RepositoryMapping {
   };
   webhook_secret?: string;        // Optional webhook signature validation secret
   enabled: boolean;               // Enable/disable this mapping
+  created_at?: string;            // Creation timestamp (ISO 8601)
+  created_by?: string;            // Discord user ID who created this mapping
+  auto_synced?: boolean;          // Whether initial sync has been completed
+  tags?: {                        // Optional tag mappings
+    [labelName: string]: string;  // GitHub label -> Discord tag ID
+  };
   options?: MappingOptions;       // Optional configuration for future extensibility
 }
 

@@ -8,6 +8,8 @@ import {
 } from '../types/configTypes';
 import { logger } from '../logger';
 
+import { ConfigPersistence } from '../managers/ConfigPersistence';
+
 export class ConfigManager {
   private config: BotConfig | null = null;
   private configPath: string;
@@ -263,5 +265,51 @@ export class ConfigManager {
     this.mappingsByRepo.clear();
     
     return this.loadConfig();
+  }
+
+  async addMapping(mapping: RepositoryMapping): Promise<void> {
+    try {
+      // Add to config
+      this.config!.mappings.push(mapping);
+      
+      // Rebuild indexes
+      this.buildMappingIndexes();
+      
+      // Save to disk using ConfigPersistence
+      const persistence = new ConfigPersistence(this.configPath);
+      await persistence.saveConfig(this.config!);
+      
+      logger.info('Added mapping to config', {
+        id: mapping.id,
+        repo: `${mapping.repository.owner}/${mapping.repository.name}`
+      });
+    } catch (error) {
+      logger.error('Failed to add mapping to config', error as Error);
+      throw error;
+    }
+  }
+  
+  async removeMapping(mappingId: string): Promise<void> {
+    try {
+      // Find and remove from config
+      const index = this.config!.mappings.findIndex(m => m.id === mappingId);
+      if (index === -1) {
+        throw new Error(`Mapping not found: ${mappingId}`);
+      }
+      
+      this.config!.mappings.splice(index, 1);
+      
+      // Rebuild indexes
+      this.buildMappingIndexes();
+      
+      // Save to disk using ConfigPersistence
+      const persistence = new ConfigPersistence(this.configPath);
+      await persistence.saveConfig(this.config!);
+      
+      logger.info('Removed mapping from config', { id: mappingId });
+    } catch (error) {
+      logger.error('Failed to remove mapping from config', error as Error);
+      throw error;
+    }
   }
 }

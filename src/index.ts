@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits } from "discord.js";
+import { Client, GatewayIntentBits, Message, ChatInputCommandInteraction } from "discord.js";
 import express, { Request, Response } from "express";
 import { ConfigManager } from "./config/ConfigManager";
 import { MultiStore } from "./store/MultiStore";
@@ -11,6 +11,11 @@ import { IsolatedErrorHandler } from "./error/IsolatedErrorHandler";
 import { HealthMonitor } from "./monitoring/HealthMonitor";
 import { logger } from "./logger";
 import { BotConfig } from "./types/configTypes";
+import { CommandManager } from "./commands/CommandManager";
+import { DynamicMappingManager } from "./managers/DynamicMappingManager";
+import { WatchCommand } from "./commands/WatchCommand";
+import { UnwatchCommand } from "./commands/UnwatchCommand";
+import { ListCommand } from "./commands/ListCommand";
 
 export class Bot {
   private client: Client;
@@ -20,11 +25,13 @@ export class Bot {
   private multiStore: MultiStore;
   private contextProvider: ContextProvider;
   private webhookRouter: WebhookRouter;
-  private githubFactory: GitHubClientFactory;
-  private discordHandlers: DiscordHandlers;
-  private githubHandlers: GitHubWebhookHandlers;
+  private githubFactory!: GitHubClientFactory;
+  private discordHandlers!: DiscordHandlers;
+  private githubHandlers!: GitHubWebhookHandlers;
   private errorHandler: IsolatedErrorHandler;
-  private healthMonitor: HealthMonitor;
+  private healthMonitor!: HealthMonitor;
+  private commandManager!: CommandManager;
+  private mappingManager!: DynamicMappingManager;
 
   constructor() {
     // Initialize Discord client
@@ -64,6 +71,30 @@ export class Bot {
 
       // Initialize GitHub client factory
       this.githubFactory = new GitHubClientFactory(this.config.github_access_token);
+      
+      // Initialize command system
+      this.commandManager = new CommandManager(
+        this.client,
+        this.multiStore,
+        this.githubFactory,
+        this.config.command_settings?.prefix || '!'
+      );
+      
+      // Initialize dynamic mapping manager
+      this.mappingManager = new DynamicMappingManager(
+        this.multiStore,
+        this.configManager,
+        this.githubFactory,
+        this.client
+      );
+      
+      // Set mapping manager in command manager
+      this.commandManager.setMappingManager(this.mappingManager);
+      
+      // Register commands
+      this.commandManager.registerCommand(new WatchCommand());
+      this.commandManager.registerCommand(new UnwatchCommand());
+      this.commandManager.registerCommand(new ListCommand());
 
       // Initialize handlers
       this.discordHandlers = new DiscordHandlers(
@@ -147,6 +178,9 @@ export class Bot {
     // Client ready event
     this.client.once("ready", async () => {
       await this.discordHandlers.handleClientReady(this.client);
+      
+      // Register slash commands
+      await this.commandManager.registerSlashCommands();
     });
 
     // Thread events
@@ -177,6 +211,10 @@ export class Bot {
     // Message events
     this.client.on("messageCreate", async (message) => {
       try {
+        // Handle prefix commands first
+        await this.commandManager.handlePrefixCommand(message);
+        
+        // Then handle regular message processing
         await this.discordHandlers.handleMessageCreate(message);
       } catch (error) {
         logger.error("Error handling message create", error as Error);
@@ -197,6 +235,17 @@ export class Bot {
         await this.discordHandlers.handleChannelUpdate(newChannel);
       } catch (error) {
         logger.error("Error handling channel update", error as Error);
+      }
+    });
+    
+    // Slash command interaction event
+    this.client.on("interactionCreate", async (interaction) => {
+      if (!interaction.isChatInputCommand()) return;
+      
+      try {
+        await this.commandManager.handleSlashCommand(interaction);
+      } catch (error) {
+        logger.error("Error handling slash command", error as Error);
       }
     });
 
