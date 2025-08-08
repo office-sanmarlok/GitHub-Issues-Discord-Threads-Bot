@@ -45,8 +45,8 @@ export class DiscordActions {
         comments: []
       };
 
-      context.store.threads.push(threadData);
-      context.logger.info(`Created Discord thread: ${data.title}`);
+      context.store.addThread(threadData);
+      context.logger.info(`Created Discord thread: ${data.title} with issue #${data.number}`);
     } catch (error) {
       context.logger.error(`Failed to create Discord thread: ${(error as Error).message}`);
     }

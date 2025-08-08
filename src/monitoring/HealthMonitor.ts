@@ -39,7 +39,7 @@ export interface SystemHealth {
 export class HealthMonitor {
   private startTime: Date;
   private lastActivityTimes: Map<string, Date> = new Map();
-  private checkInterval?: NodeJS.Timer;
+  private checkInterval?: NodeJS.Timeout;
   private healthCache: Map<string, MappingHealth> = new Map();
 
   constructor(

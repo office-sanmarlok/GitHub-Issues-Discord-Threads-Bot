@@ -12,7 +12,7 @@ export async function createIssue(
   const { title, appliedTags, number } = thread;
 
   if (number) {
-    context.logger.error("Thread already has an issue number", { thread });
+    context.logger.error("Thread already has an issue number");
     return;
   }
 
@@ -36,7 +36,7 @@ export async function createIssue(
 
     context.logger.info(`Created issue #${issue.number}: ${title}`);
   } catch (error) {
-    context.logger.error(`Failed to create issue: ${(error as Error).message}`, { thread });
+    context.logger.error(`Failed to create issue: ${(error as Error).message}`);
   }
 }
 
@@ -49,7 +49,7 @@ export async function createIssueComment(
   const { number } = thread;
 
   if (!number) {
-    context.logger.error("Thread does not have an issue number", { thread });
+    context.logger.error("Thread does not have an issue number");
     return;
   }
 
@@ -66,7 +66,7 @@ export async function createIssueComment(
 
     context.logger.info(`Created comment on issue #${number}`);
   } catch (error) {
-    context.logger.error(`Failed to create comment: ${(error as Error).message}`, { thread });
+    context.logger.error(`Failed to create comment: ${(error as Error).message}`);
   }
 }
 
@@ -78,7 +78,7 @@ export async function closeIssue(
   const { number } = thread;
 
   if (!number) {
-    context.logger.error("Thread does not have an issue number", { thread });
+    context.logger.error("Thread does not have an issue number");
     return;
   }
 
@@ -86,7 +86,7 @@ export async function closeIssue(
     await githubFactory.updateIssue(context, number, { state: 'closed' });
     context.logger.info(`Closed issue #${number}`);
   } catch (error) {
-    context.logger.error(`Failed to close issue: ${(error as Error).message}`, { thread });
+    context.logger.error(`Failed to close issue: ${(error as Error).message}`);
   }
 }
 
@@ -98,7 +98,7 @@ export async function openIssue(
   const { number } = thread;
 
   if (!number) {
-    context.logger.error("Thread does not have an issue number", { thread });
+    context.logger.error("Thread does not have an issue number");
     return;
   }
 
@@ -106,7 +106,7 @@ export async function openIssue(
     await githubFactory.updateIssue(context, number, { state: 'open' });
     context.logger.info(`Reopened issue #${number}`);
   } catch (error) {
-    context.logger.error(`Failed to reopen issue: ${(error as Error).message}`, { thread });
+    context.logger.error(`Failed to reopen issue: ${(error as Error).message}`);
   }
 }
 
@@ -118,7 +118,7 @@ export async function lockIssue(
   const { number } = thread;
 
   if (!number) {
-    context.logger.error("Thread does not have an issue number", { thread });
+    context.logger.error("Thread does not have an issue number");
     return;
   }
 
@@ -126,7 +126,7 @@ export async function lockIssue(
     await githubFactory.lockIssue(context, number);
     context.logger.info(`Locked issue #${number}`);
   } catch (error) {
-    context.logger.error(`Failed to lock issue: ${(error as Error).message}`, { thread });
+    context.logger.error(`Failed to lock issue: ${(error as Error).message}`);
   }
 }
 
@@ -138,7 +138,7 @@ export async function unlockIssue(
   const { number } = thread;
 
   if (!number) {
-    context.logger.error("Thread does not have an issue number", { thread });
+    context.logger.error("Thread does not have an issue number");
     return;
   }
 
@@ -146,7 +146,7 @@ export async function unlockIssue(
     await githubFactory.unlockIssue(context, number);
     context.logger.info(`Unlocked issue #${number}`);
   } catch (error) {
-    context.logger.error(`Failed to unlock issue: ${(error as Error).message}`, { thread });
+    context.logger.error(`Failed to unlock issue: ${(error as Error).message}`);
   }
 }
 
@@ -158,7 +158,7 @@ export async function deleteIssue(
   const { node_id } = thread;
 
   if (!node_id) {
-    context.logger.error("Thread does not have a node ID", { thread });
+    context.logger.error("Thread does not have a node ID");
     return;
   }
 
@@ -166,7 +166,7 @@ export async function deleteIssue(
     await githubFactory.deleteIssue(context, node_id);
     context.logger.info(`Deleted issue with node ID: ${node_id}`);
   } catch (error) {
-    context.logger.error(`Failed to delete issue: ${(error as Error).message}`, { thread });
+    context.logger.error(`Failed to delete issue: ${(error as Error).message}`);
   }
 }
 
@@ -180,7 +180,7 @@ export async function deleteComment(
     await githubFactory.deleteComment(context, commentId);
     context.logger.info(`Deleted comment ${commentId}`);
   } catch (error) {
-    context.logger.error(`Failed to delete comment: ${(error as Error).message}`, { thread });
+    context.logger.error(`Failed to delete comment: ${(error as Error).message}`);
   }
 }
 

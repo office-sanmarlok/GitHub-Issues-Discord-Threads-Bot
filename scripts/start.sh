@@ -20,7 +20,7 @@ if command -v pm2 &> /dev/null; then
     pm2 delete discord-bot 2>/dev/null
     
     # Start new instance
-    pm2 start npm --name "discord-bot" -- run start:enhanced
+    pm2 start npm --name "discord-bot" -- start
     pm2 save
     
     echo "✅ Bot started successfully!"
@@ -41,10 +41,10 @@ else
     
     # Build first
     echo "🔨 Building TypeScript..."
-    npm run build:tsc
+    npm run build
     
     # Start with nohup
-    nohup npm run start:enhanced > bot.log 2>&1 &
+    nohup npm start > bot.log 2>&1 &
     echo $! > bot.pid
     
     echo "✅ Bot started with PID: $(cat bot.pid)"

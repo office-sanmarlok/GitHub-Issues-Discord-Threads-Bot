@@ -2,7 +2,7 @@
  * Context types for multi-repository support
  */
 
-import { Store } from '../store';
+import { EnhancedStore } from '../types/storeTypes';
 import { RepositoryMapping, RepoCredentials } from './configTypes';
 import { Request } from 'express';
 
@@ -21,7 +21,7 @@ export interface ContextualLogger {
  */
 export interface MappingContext {
   mapping: RepositoryMapping;
-  store: Store;
+  store: EnhancedStore;
   repoCredentials: RepoCredentials;
   logger: ContextualLogger;
 }
@@ -50,6 +50,9 @@ export interface WebhookPayload {
   issue?: GitHubIssue;
   comment?: GitHubComment;
   sender: GitHubUser;
+  changes?: any;
+  label?: any;
+  hook_id?: number;
 }
 
 /**
@@ -105,6 +108,6 @@ export interface GitHubLabel {
  */
 export interface ActionContext {
   mapping: RepositoryMapping;
-  store: Store;
+  store: EnhancedStore;
   repoCredentials: RepoCredentials;
 }

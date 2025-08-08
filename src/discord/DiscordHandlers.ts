@@ -58,7 +58,7 @@ export class DiscordHandlers {
         for (const issue of issues) {
           const discordInfo = this.extractDiscordInfoFromBody(issue.body || '');
           if (discordInfo.threadId) {
-            context.store.threads.push({
+            context.store.addThread({
               id: discordInfo.threadId,
               title: issue.title,
               number: issue.number,
@@ -100,7 +100,16 @@ export class DiscordHandlers {
 
     const { id, name, appliedTags } = thread;
 
-    context.store.threads.push({
+    // Check if thread already exists (might have been created by GitHub webhook)
+    const existing = context.store.getThread(id);
+    if (existing) {
+      // Thread already exists (likely from GitHub webhook), just log
+      context.logger.debug(`Thread ${name} already exists in store`);
+      return;
+    }
+
+    // Only add basic Discord info, GitHub info will come from webhook
+    context.store.addThread({
       id,
       appliedTags,
       title: name,
@@ -109,7 +118,7 @@ export class DiscordHandlers {
       comments: [],
     });
 
-    context.logger.info(`Thread created: ${name}`);
+    context.logger.info(`Discord thread created: ${name}`);
   }
 
   async handleChannelUpdate(channel: DMChannel | NonThreadGuildBasedChannel): Promise<void> {
@@ -177,12 +186,19 @@ export class DiscordHandlers {
     const parentId = channel.parentId;
     
     const context = this.contextProvider.fromChannelId(parentId || '');
-    if (!context) return;
+    if (!context) {
+      logger.debug(`No context found for parent ${parentId}`);
+      return;
+    }
 
-    const thread = context.store.threads.find(t => t.id === channelId);
-    if (!thread) return;
+    const thread = context.store.getThread(channelId);
+    if (!thread) {
+      context.logger.warn(`Thread ${channelId} not found in store`);
+      return;
+    }
 
-    if (!thread.body) {
+    context.logger.info(`Processing message in thread ${thread.title} (Issue #${thread.number || 'N/A'})`);
+    if (!thread.number) {
       await createIssue(context, this.githubFactory, thread, message);
     } else {
       await createIssueComment(context, this.githubFactory, thread, message);

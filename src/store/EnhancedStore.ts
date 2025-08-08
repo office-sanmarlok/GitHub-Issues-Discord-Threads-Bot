@@ -43,17 +43,37 @@ export class EnhancedStore implements IEnhancedStore {
   }
 
   /**
-   * Add a new thread
+   * Add a new thread or update existing one
    */
   addThread(thread: Thread): void {
     // Check if thread already exists
-    const existing = this.threads.find(t => t.id === thread.id);
-    if (!existing) {
+    const existingIndex = this.threads.findIndex(t => t.id === thread.id);
+    
+    if (existingIndex === -1) {
+      // New thread
       this.threads.push(thread);
-      this.metrics.threadCount = this.threads.length;
-      this.metrics.issueCount = this.threads.filter(t => t.number !== undefined).length;
       this.updateMetrics('created');
+    } else {
+      // Update existing thread - merge important fields
+      const existing = this.threads[existingIndex];
+      
+      // Preserve GitHub-specific fields if they exist
+      this.threads[existingIndex] = {
+        ...thread,
+        // Keep GitHub data if it exists and new data doesn't have it
+        number: thread.number || existing.number,
+        node_id: thread.node_id || existing.node_id,
+        body: thread.body || existing.body,
+        // Merge comments array
+        comments: [...existing.comments, ...thread.comments.filter(
+          newComment => !existing.comments.some(c => c.id === newComment.id)
+        )]
+      };
+      this.updateMetrics('updated');
     }
+    
+    this.metrics.threadCount = this.threads.length;
+    this.metrics.issueCount = this.threads.filter(t => t.number !== undefined).length;
   }
 
   /**

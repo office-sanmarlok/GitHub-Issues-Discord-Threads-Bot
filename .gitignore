@@ -12,3 +12,7 @@ logs
 .serena/
 bot.log
 *.log
+*.pid
+
+# Config backups
+.config-backups/

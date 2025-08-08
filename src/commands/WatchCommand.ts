@@ -25,7 +25,7 @@ export class WatchCommand extends BaseCommand {
       const { owner, repo } = args;
       
       // Check if forum category is configured
-      const botConfig = (services.mappingManager as any).configManager?.getConfig();
+      const botConfig = services.mappingManager.getConfig();
       
       if (!botConfig?.forum_category_id) {
         throw new CommandError(

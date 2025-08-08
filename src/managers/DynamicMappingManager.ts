@@ -163,6 +163,14 @@ export class DynamicMappingManager {
   getAllMappings(): RepositoryMapping[] {
     return this.configManager.getMappings();
   }
+
+  
+  /**
+   * Get configuration
+   */
+  getConfig() {
+    return this.configManager.getConfig();
+  }
   
   /**
    * Validate that a GitHub repository exists and is accessible
@@ -179,7 +187,7 @@ export class DynamicMappingManager {
         store: {} as any,  // Not needed for validation
         repoCredentials: {
           owner,
-          name: repo
+          repo
         },
         logger: logger
       };
@@ -261,7 +269,7 @@ export class DynamicMappingManager {
         store: store || {} as any,
         repoCredentials: {
           owner: mapping.repository.owner,
-          name: mapping.repository.name
+          repo: mapping.repository.name
         },
         logger: logger
       };
@@ -279,8 +287,8 @@ export class DynamicMappingManager {
       logger.info(`Found ${issues.length} open issues to sync`);
       
       // Get store for this mapping
-      const store = this.multiStore.getStore(mapping.id);
-      if (!store) {
+      const mappingStore = this.multiStore.getStore(mapping.id);
+      if (!mappingStore) {
         throw new Error(`Store not found for mapping: ${mapping.id}`);
       }
       
@@ -294,7 +302,7 @@ export class DynamicMappingManager {
           }
           
           // Check if already exists
-          const existingThread = store.getThreadByIssueNumber(issue.number);
+          const existingThread = mappingStore.getThreadByIssueNumber(issue.number);
           if (existingThread) {
             result.skipped++;
             continue;
@@ -313,7 +321,7 @@ export class DynamicMappingManager {
           });
           
           // Add to store
-          store.addThread({
+          mappingStore.addThread({
             id: thread.id,
             title: formatted.title,
             appliedTags: [],
