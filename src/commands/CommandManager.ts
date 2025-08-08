@@ -152,7 +152,24 @@ export class CommandManager {
       });
       
       const result = await command.execute(commandArgs, context, this.services);
-      await command.sendResponse(context, result);
+      
+      // Send response directly from CommandManager
+      const responseContent = {
+        content: result.message,
+        embeds: result.embed ? [result.embed] : []
+      };
+      
+      if (context.type === 'slash' && context.interaction) {
+        if (context.interaction.deferred) {
+          await context.interaction.editReply(responseContent);
+        } else if (context.interaction.replied) {
+          await context.interaction.followUp(responseContent);
+        } else {
+          await context.interaction.reply(responseContent);
+        }
+      } else if (context.message) {
+        await context.message.reply(responseContent);
+      }
     } catch (error) {
       logger.error(`Error executing prefix command: ${commandName}`, error as Error);
       await message.reply('❌ コマンドの実行中にエラーが発生しました');
@@ -178,7 +195,24 @@ export class CommandManager {
       });
       
       const result = await command.execute(commandArgs, context, this.services);
-      await command.sendResponse(context, result);
+      
+      // Send response directly from CommandManager
+      const responseContent = {
+        content: result.message,
+        embeds: result.embed ? [result.embed] : []
+      };
+      
+      if (context.type === 'slash' && context.interaction) {
+        if (context.interaction.deferred) {
+          await context.interaction.editReply(responseContent);
+        } else if (context.interaction.replied) {
+          await context.interaction.followUp(responseContent);
+        } else {
+          await context.interaction.reply(responseContent);
+        }
+      } else if (context.message) {
+        await context.message.reply(responseContent);
+      }
     } catch (error) {
       logger.error(`Error executing slash command: ${interaction.commandName}`, error as Error);
       

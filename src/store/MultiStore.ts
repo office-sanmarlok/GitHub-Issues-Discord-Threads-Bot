@@ -270,10 +270,10 @@ export class MultiStore {
       // Add to collections
       this.stores.set(mapping.id, store);
       this.mappings.set(mapping.id, mapping);
-      this.channelToMapping.set(mapping.channel_id, mapping);
+      this.channelToMapping.set(mapping.channel_id, mapping.id);
       
       const repoKey = this.getRepoKey(mapping.repository.owner, mapping.repository.name);
-      this.repoToMapping.set(repoKey, mapping);
+      this.repoToMapping.set(repoKey, mapping.id);
       
       logger.info('Added mapping to MultiStore', {
         id: mapping.id,

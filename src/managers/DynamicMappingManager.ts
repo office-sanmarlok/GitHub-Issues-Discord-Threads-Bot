@@ -169,7 +169,22 @@ export class DynamicMappingManager {
    */
   async validateRepository(owner: string, repo: string): Promise<boolean> {
     try {
-      const github = this.githubFactory.getClient(owner, repo);
+      // Create a temporary context for validation
+      const tempMapping: any = {
+        id: 'temp-validation',
+        repository: { owner, name: repo }
+      };
+      const context = {
+        mapping: tempMapping,
+        store: {} as any,  // Not needed for validation
+        repoCredentials: {
+          owner,
+          name: repo
+        },
+        logger: logger
+      };
+      
+      const github = this.githubFactory.getClient(context);
       const { data } = await github.repos.get({
         owner,
         repo
@@ -240,10 +255,17 @@ export class DynamicMappingManager {
     };
     
     try {
-      const github = this.githubFactory.getClient(
-        mapping.repository.owner,
-        mapping.repository.name
-      );
+      const store = this.multiStore.getStore(mapping.id);
+      const context = {
+        mapping: mapping,
+        store: store || {} as any,
+        repoCredentials: {
+          owner: mapping.repository.owner,
+          name: mapping.repository.name
+        },
+        logger: logger
+      };
+      const github = this.githubFactory.getClient(context);
       
       // Get all open issues
       const { data: issues } = await github.issues.listForRepo({
@@ -299,8 +321,8 @@ export class DynamicMappingManager {
             body: issue.body || '',
             node_id: issue.node_id,
             comments: [],
-            archived: thread.archived,
-            locked: thread.locked
+            archived: thread.archived || false,
+            locked: thread.locked || false
           });
           
           result.synced++;
