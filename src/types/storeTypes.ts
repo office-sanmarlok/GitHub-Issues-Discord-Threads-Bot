@@ -3,7 +3,7 @@
  */
 
 import { GuildForumTag } from 'discord.js';
-import { Thread } from '../interfaces';
+import { Thread, Comment } from '../interfaces';
 
 /**
  * Metrics for tracking store operations
@@ -32,8 +32,14 @@ export interface EnhancedStore {
   deleteThread(id: string): Thread[];
   addThread(thread: Thread): void;
   getThread(id: string): Thread | undefined;
+  getThreadByIssueNumber(number: number): Thread | undefined;
+  getThreadByNodeId(nodeId: string): Thread | undefined;
+  updateThread(id: string, updates: Partial<Thread>): Thread | undefined;
   updateMetrics(operation: keyof StoreMetrics['operations']): void;
   resetMetrics(): void;
+  findCommentByGitId(threadId: string, gitId: number): Comment | undefined;
+  updateCommentMapping(threadId: string, gitId: number, newMessageId: string): void;
+  removeCommentMapping(threadId: string, gitId: number): void;
 }
 
 /**

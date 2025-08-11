@@ -1,5 +1,5 @@
 import { GuildForumTag } from 'discord.js';
-import { Thread } from '../interfaces';
+import { Thread, Comment } from '../interfaces';
 import { StoreMetrics, EnhancedStore as IEnhancedStore } from '../types/storeTypes';
 
 export class EnhancedStore implements IEnhancedStore {
@@ -150,5 +150,64 @@ export class EnhancedStore implements IEnhancedStore {
     this.threads = [];
     this.availableTags = [];
     this.resetMetrics();
+  }
+
+  /**
+   * Find a comment by GitHub comment ID
+   * @param threadId Discord thread ID
+   * @param gitId GitHub comment ID
+   * @returns Comment if found, undefined otherwise
+   */
+  findCommentByGitId(threadId: string, gitId: number): Comment | undefined {
+    const thread = this.getThread(threadId);
+    if (!thread) {
+      return undefined;
+    }
+    return thread.comments.find(comment => comment.git_id === gitId);
+  }
+
+  /**
+   * Update comment mapping with new Discord message ID
+   * @param threadId Discord thread ID
+   * @param gitId GitHub comment ID
+   * @param newMessageId New Discord message ID
+   */
+  updateCommentMapping(threadId: string, gitId: number, newMessageId: string): void {
+    const thread = this.getThread(threadId);
+    if (!thread) {
+      return;
+    }
+
+    const commentIndex = thread.comments.findIndex(c => c.git_id === gitId);
+    if (commentIndex !== -1) {
+      // Update existing mapping
+      thread.comments[commentIndex].id = newMessageId;
+    } else {
+      // Add new mapping
+      thread.comments.push({
+        id: newMessageId,
+        git_id: gitId
+      });
+    }
+    
+    this.updateMetrics('updated');
+  }
+
+  /**
+   * Remove comment mapping
+   * @param threadId Discord thread ID
+   * @param gitId GitHub comment ID
+   */
+  removeCommentMapping(threadId: string, gitId: number): void {
+    const thread = this.getThread(threadId);
+    if (!thread) {
+      return;
+    }
+
+    const commentIndex = thread.comments.findIndex(c => c.git_id === gitId);
+    if (commentIndex !== -1) {
+      thread.comments.splice(commentIndex, 1);
+      this.updateMetrics('deleted');
+    }
   }
 }

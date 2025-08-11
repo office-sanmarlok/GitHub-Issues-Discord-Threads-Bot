@@ -33,10 +33,25 @@ else
     echo "⚠️  PM2 not found. Using nohup instead..."
     echo "💡 Install PM2 for better process management: npm install -g pm2"
     
-    # Check if already running
-    if pgrep -f "EnhancedIndex" > /dev/null; then
-        echo "⚠️  Bot is already running. Stop it first with: ./scripts/stop.sh"
+    # Check if already running by checking port 5000
+    if lsof -Pi :5000 -sTCP:LISTEN -t >/dev/null 2>&1; then
+        echo "⚠️  Bot is already running (port 5000 is in use)."
+        echo "📌 Current process: $(lsof -Pi :5000 -sTCP:LISTEN | grep -v COMMAND)"
+        echo "💡 Stop it first with: ./scripts/stop.sh"
         exit 1
+    fi
+    
+    # Also check if PID file exists and process is running
+    if [ -f "bot.pid" ]; then
+        OLD_PID=$(cat bot.pid)
+        if ps -p "$OLD_PID" > /dev/null 2>&1; then
+            echo "⚠️  Bot is already running with PID: $OLD_PID"
+            echo "💡 Stop it first with: ./scripts/stop.sh"
+            exit 1
+        else
+            # Clean up stale PID file
+            rm -f bot.pid
+        fi
     fi
     
     # Build first

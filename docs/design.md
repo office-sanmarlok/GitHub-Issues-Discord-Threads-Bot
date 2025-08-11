@@ -1,677 +1,385 @@
-# Discord コマンド機能 設計書
+# GitHub コメント同期機能 設計書
 
-## 概要
+## Overview
 
-この設計書は、GitHub Issues Discord Threads Bot に Discord コマンド機能を追加するための技術設計を定義します。スラッシュコマンドとプレフィックスコマンドの両方をサポートし、動的なリポジトリ監視管理を実現します。
+このドキュメントは、GitHub Issues のコメント編集・削除イベントを Discord に同期する機能の設計を定義します。現在、コメント作成の同期は実装済みですが、編集・削除の同期が未実装のため、これらの機能を追加します。
 
-## アーキテクチャ
+技術的制約として、Discord Webhook で投稿されたメッセージは編集不可能なため、編集時は「削除＋新規投稿」の方式を採用します。
 
-### 全体構成
+## Architecture
+
+### システム全体図
 
 ```mermaid
 graph TB
-    subgraph Discord
-        U[User/Bot] -->|Command| DC[Discord Client]
-        DC --> CH[Command Handler]
-        CH --> CM[Command Manager]
-    end
+    GH[GitHub] -->|Webhook| WH[Webhook Receiver]
+    WH --> EP[Event Processor]
+    EP --> ST[(Store)]
+    EP --> DA[Discord Actions]
+    DA -->|API| DC[Discord]
     
-    subgraph Command Processing
-        CM --> WC[WatchCommand]
-        CM --> UC[UnwatchCommand]
-        CM --> LC[ListCommand]
-    end
-    
-    subgraph Core Services
-        WC --> DM[Dynamic Mapping Manager]
-        UC --> DM
-        LC --> MS[MultiStore]
-        DM --> MS
-        DM --> CFG[ConfigPersistence]
-        CFG --> CF[config.json]
-    end
-    
-    subgraph GitHub Integration
-        DM --> FC[Forum Channel Creator]
-        FC --> DI[Discord API]
-        DM --> GV[GitHub Validator]
-        GV --> GH[GitHub API]
+    subgraph Bot Server
+        WH
+        EP
+        ST
+        DA
     end
 ```
 
-### レイヤード アーキテクチャ
+### コンポーネント構成
 
 ```
-┌─────────────────────────────────────────┐
-│         プレゼンテーション層            │
-│   (Discord Commands & Messages)         │
-├─────────────────────────────────────────┤
-│           コマンド処理層                 │
-│   (Command Handlers & Registry)         │
-├─────────────────────────────────────────┤
-│           ビジネスロジック層             │
-│  (Dynamic Mapping & Sync Manager)       │
-├─────────────────────────────────────────┤
-│           データ管理層                   │
-│   (MultiStore & ConfigPersistence)      │
-├─────────────────────────────────────────┤
-│          インフラストラクチャ層          │
-│     (File System & Discord/GitHub API)  │
-└─────────────────────────────────────────┘
+src/
+├── webhook/
+│   └── GitHubWebhookHandlers.ts  # Webhookイベント処理
+├── discord/
+│   └── DiscordActions.ts         # Discord API操作
+├── store/
+│   └── EnhancedStore.ts          # データストア管理
+└── types/
+    └── contextTypes.ts            # 型定義
 ```
 
-## コンポーネントと インターフェース
+## Components and Interfaces
 
-### 1. CommandManager
+### GitHubWebhookHandlers コンポーネント
+
+#### 責務
+- GitHub Webhook イベントの受信と処理
+- 適切なアクションの実行指示
+
+#### インターフェース
 
 ```typescript
-interface CommandManager {
-  // スラッシュコマンドの登録
-  registerSlashCommands(client: Client): Promise<void>;
-  
-  // プレフィックスコマンドの処理
-  handlePrefixCommand(message: Message): Promise<void>;
-  
-  // コマンドの実行
-  executeCommand(
-    commandName: string,
-    args: CommandArgs,
-    context: CommandContext
-  ): Promise<CommandResult>;
-}
+class GitHubWebhookHandlers {
+  /**
+   * コメント編集イベントを処理
+   */
+  async handleIssueCommentEdited(
+    context: MappingContext,
+    payload: WebhookPayload
+  ): Promise<void>
 
-interface CommandContext {
-  type: 'slash' | 'prefix';
-  user: User;
-  channel: TextChannel | ForumChannel;
-  guild: Guild;
-  message?: Message;
-  interaction?: ChatInputCommandInteraction;
-}
-
-interface CommandArgs {
-  owner?: string;
-  repo?: string;
-  deleteChannel?: boolean;
-}
-
-interface CommandResult {
-  success: boolean;
-  message: string;
-  embed?: EmbedBuilder;
-  error?: Error;
+  /**
+   * コメント削除イベントを処理
+   */
+  async handleIssueCommentDeleted(
+    context: MappingContext,
+    payload: WebhookPayload
+  ): Promise<void>
 }
 ```
 
-### 2. Command Base クラス
+### DiscordActions コンポーネント
+
+#### 責務
+- Discord API との通信
+- メッセージの作成、削除操作
+
+#### インターフェース
 
 ```typescript
-abstract class BaseCommand {
-  abstract name: string;
-  abstract description: string;
-  abstract execute(
-    args: CommandArgs,
-    context: CommandContext,
-    services: CommandServices
-  ): Promise<CommandResult>;
-  
-  // 共通のエラーハンドリング
-  protected handleError(error: Error): CommandResult {
-    return {
-      success: false,
-      message: `エラーが発生しました: ${error.message}`,
-      error
-    };
-  }
-  
-  // 応答の送信
-  protected async sendResponse(
-    context: CommandContext,
-    result: CommandResult
-  ): Promise<void> {
-    if (context.type === 'slash' && context.interaction) {
-      await context.interaction.reply({
-        content: result.message,
-        embeds: result.embed ? [result.embed] : []
-      });
-    } else if (context.message) {
-      await context.message.reply({
-        content: result.message,
-        embeds: result.embed ? [result.embed] : []
-      });
+class DiscordActions {
+  /**
+   * Discord メッセージを削除
+   * @returns 削除成功の可否
+   */
+  async deleteMessage(
+    context: MappingContext,
+    messageId: string,
+    channelId: string
+  ): Promise<boolean>
+
+  /**
+   * 既存の createComment メソッドを活用
+   * Webhook 経由で新しいメッセージを投稿
+   */
+  async createComment(
+    context: MappingContext,
+    data: CommentData
+  ): Promise<void>
+}
+```
+
+### EnhancedStore コンポーネント
+
+#### 責務
+- コメントマッピングの管理
+- Thread データの永続化
+
+#### インターフェース
+
+```typescript
+interface EnhancedStore {
+  /**
+   * GitHub コメントIDから Discord メッセージを検索
+   */
+  findCommentByGitId(
+    threadId: string,
+    gitId: number
+  ): Comment | undefined
+
+  /**
+   * コメントマッピングを更新
+   */
+  updateCommentMapping(
+    threadId: string,
+    gitId: number,
+    newMessageId: string
+  ): void
+
+  /**
+   * コメントマッピングを削除
+   */
+  removeCommentMapping(
+    threadId: string,
+    gitId: number
+  ): void
+}
+```
+
+## Data Models
+
+### Webhook ペイロード
+
+```typescript
+// コメント編集時
+interface EditedCommentPayload {
+  action: "edited"
+  comment: {
+    id: number
+    body: string
+    user: {
+      login: string
+      avatar_url: string
     }
   }
+  issue: {
+    number: number
+    node_id: string
+  }
 }
 
-interface CommandServices {
-  multiStore: MultiStore;
-  mappingManager: DynamicMappingManager;
-  githubFactory: GitHubClientFactory;
-  discordClient: Client;
-}
-```
-
-### 3. DynamicMappingManager
-
-```typescript
-interface DynamicMappingManager {
-  // マッピングの追加
-  addMapping(
-    owner: string,
-    repo: string,
-    categoryId: string,
-    userId: string
-  ): Promise<MappingResult>;
-  
-  // マッピングの削除
-  removeMapping(
-    owner: string,
-    repo: string,
-    deleteChannel: boolean
-  ): Promise<void>;
-  
-  // マッピング一覧の取得
-  getAllMappings(): RepositoryMapping[];
-  
-  // リポジトリの検証
-  validateRepository(owner: string, repo: string): Promise<boolean>;
-  
-  // フォーラムチャンネルの作成
-  createForumChannel(
-    guild: Guild,
-    categoryId: string,
-    owner: string,
-    repo: string
-  ): Promise<ForumChannel>;
-  
-  // 初期同期の実行
-  syncExistingIssues(
-    mapping: RepositoryMapping,
-    forumChannel: ForumChannel
-  ): Promise<SyncResult>;
-}
-
-interface MappingResult {
-  mapping: RepositoryMapping;
-  channelId: string;
-  syncResult?: SyncResult;
-}
-
-interface SyncResult {
-  total: number;
-  synced: number;
-  errors: number;
-  skipped: number;
-}
-```
-
-### 4. ConfigPersistence
-
-```typescript
-interface ConfigPersistence {
-  // 設定の読み込み
-  loadConfig(): Promise<BotConfig>;
-  
-  // 設定の保存（ファイルロック付き）
-  saveConfig(config: BotConfig): Promise<void>;
-  
-  // マッピングの追加
-  addMapping(mapping: RepositoryMapping): Promise<void>;
-  
-  // マッピングの削除
-  removeMapping(mappingId: string): Promise<void>;
-  
-  // バックアップの作成
-  createBackup(): Promise<string>;
-  
-  // ロールバック
-  rollback(backupPath: string): Promise<void>;
-}
-
-// ファイルロック機構
-class FileLock {
-  private static locks = new Map<string, Promise<void>>();
-  
-  static async withLock<T>(
-    filePath: string,
-    operation: () => Promise<T>
-  ): Promise<T> {
-    const currentLock = this.locks.get(filePath);
-    if (currentLock) {
-      await currentLock;
-    }
-    
-    let resolve: () => void;
-    const newLock = new Promise<void>(r => resolve = r);
-    this.locks.set(filePath, newLock);
-    
-    try {
-      return await operation();
-    } finally {
-      resolve!();
-      this.locks.delete(filePath);
-    }
+// コメント削除時
+interface DeletedCommentPayload {
+  action: "deleted"
+  comment: {
+    id: number
+  }
+  issue: {
+    number: number
+    node_id: string
   }
 }
 ```
 
-## データモデル
-
-### 拡張された RepositoryMapping
+### コメントマッピング
 
 ```typescript
-interface RepositoryMapping {
-  id: string;                    // 一意のID (例: "microsoft-vscode-20250808120000")
-  channel_id: string;             // Discord フォーラムチャンネルID
-  repository: {
-    owner: string;
-    name: string;
-  };
-  enabled: boolean;               // 監視の有効/無効
-  created_at: string;             // 作成日時 (ISO 8601)
-  created_by?: string;            // 作成者のDiscord ユーザーID
-  auto_synced?: boolean;          // 初期同期の完了フラグ
-  tags?: {                        // タグマッピング（オプション）
-    [labelName: string]: string;  // GitHub label → Discord tag ID
-  };
+interface Comment {
+  id: string      // Discord message ID
+  git_id: number  // GitHub comment ID
+}
+
+interface Thread {
+  id: string
+  number?: number
+  node_id?: string
+  comments: Comment[]
+  // ... other fields
 }
 ```
 
-### 拡張された BotConfig
+## Error Handling
+
+### エラーケースと処理方法
+
+| エラーケース | 処理方法 | ログレベル |
+|------------|---------|-----------|
+| スレッドが見つからない | 処理を中断、警告ログ | WARN |
+| コメントマッピングが見つからない | 処理を中断、警告ログ | WARN |
+| Discord メッセージ削除失敗 | 編集通知を投稿（フォールバック） | ERROR |
+| Discord API レート制限 | 指数バックオフでリトライ | INFO |
+| Webhook ペイロード不正 | 処理を中断、エラーログ | ERROR |
+
+### リトライ戦略
 
 ```typescript
-interface BotConfig {
-  // 既存のフィールド
-  discord_token: string;
-  github_access_token: string;
-  webhook_port?: number;
-  webhook_path?: string;
-  health_check_interval?: number;
-  
-  // 新規追加フィールド
-  forum_category_id?: string;     // フォーラムチャンネルを作成するカテゴリID
-  command_settings?: {
-    enable_auto_sync: boolean;    // 監視開始時の自動同期
-    prefix: string;                // プレフィックスコマンドの接頭辞（デフォルト: "!"）
-  };
-  
-  // 既存のマッピング配列
-  mappings: RepositoryMapping[];
-}
-```
+// Discord API 操作のリトライ
+const MAX_RETRIES = 3
+const BASE_DELAY = 1000 // 1秒
 
-## エラーハンドリング
-
-### エラー分類と対処
-
-```typescript
-enum CommandErrorType {
-  INVALID_ARGS = 'INVALID_ARGS',
-  REPO_NOT_FOUND = 'REPO_NOT_FOUND',
-  ALREADY_WATCHING = 'ALREADY_WATCHING',
-  NOT_WATCHING = 'NOT_WATCHING',
-  CHANNEL_CREATE_FAILED = 'CHANNEL_CREATE_FAILED',
-  CONFIG_UPDATE_FAILED = 'CONFIG_UPDATE_FAILED',
-  RATE_LIMITED = 'RATE_LIMITED',
-  NO_CATEGORY = 'NO_CATEGORY',
-  UNKNOWN = 'UNKNOWN'
-}
-
-class CommandError extends Error {
-  constructor(
-    public type: CommandErrorType,
-    message: string,
-    public originalError?: Error
-  ) {
-    super(message);
-  }
-  
-  toUserMessage(): string {
-    const messages: Record<CommandErrorType, string> = {
-      INVALID_ARGS: '❌ コマンドの形式が正しくありません',
-      REPO_NOT_FOUND: '❌ 指定されたリポジトリが見つかりません',
-      ALREADY_WATCHING: '⚠️ このリポジトリは既に監視中です',
-      NOT_WATCHING: '⚠️ このリポジトリは監視されていません',
-      CHANNEL_CREATE_FAILED: '❌ チャンネルの作成に失敗しました',
-      CONFIG_UPDATE_FAILED: '❌ 設定の保存に失敗しました',
-      RATE_LIMITED: '⏳ API制限に達しました。しばらく待ってから再試行してください',
-      NO_CATEGORY: '❌ フォーラムカテゴリが設定されていません',
-      UNKNOWN: '❌ 予期しないエラーが発生しました'
-    };
-    return messages[this.type] || messages.UNKNOWN;
+for (let i = 0; i < MAX_RETRIES; i++) {
+  try {
+    return await operation()
+  } catch (error) {
+    if (i === MAX_RETRIES - 1) throw error
+    await sleep(BASE_DELAY * Math.pow(2, i))
   }
 }
 ```
 
-### リトライとロールバック戦略
+## Testing Strategy
 
-```typescript
-class RetryStrategy {
-  static async withRetry<T>(
-    operation: () => Promise<T>,
-    maxRetries: number = 3,
-    backoff: number = 1000
-  ): Promise<T> {
-    let lastError: Error;
-    
-    for (let i = 0; i < maxRetries; i++) {
-      try {
-        return await operation();
-      } catch (error) {
-        lastError = error as Error;
-        if (i < maxRetries - 1) {
-          await this.delay(backoff * Math.pow(2, i));
-        }
-      }
-    }
-    
-    throw lastError!;
-  }
-  
-  private static delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-}
+### 単体テスト
 
-class TransactionManager {
-  private operations: Array<() => Promise<void>> = [];
-  private rollbacks: Array<() => Promise<void>> = [];
-  
-  addOperation(
-    operation: () => Promise<void>,
-    rollback: () => Promise<void>
-  ): void {
-    this.operations.push(operation);
-    this.rollbacks.push(rollback);
-  }
-  
-  async execute(): Promise<void> {
-    const completedOps: number[] = [];
-    
-    try {
-      for (let i = 0; i < this.operations.length; i++) {
-        await this.operations[i]();
-        completedOps.push(i);
-      }
-    } catch (error) {
-      // ロールバック実行
-      for (const index of completedOps.reverse()) {
-        try {
-          await this.rollbacks[index]();
-        } catch (rollbackError) {
-          logger.error('Rollback failed', rollbackError as Error);
-        }
-      }
-      throw error;
-    }
-  }
-}
-```
+#### GitHubWebhookHandlers
+- コメント編集イベントの正常処理
+- コメント削除イベントの正常処理
+- スレッドが見つからない場合のエラー処理
+- マッピングが見つからない場合のエラー処理
 
-## テスト戦略
+#### DiscordActions
+- メッセージ削除の成功ケース
+- メッセージ削除の失敗ケース
+- 権限不足エラーの処理
 
-### ユニットテスト
-
-```typescript
-// コマンドハンドラーのテスト例
-describe('WatchCommand', () => {
-  let command: WatchCommand;
-  let mockServices: CommandServices;
-  
-  beforeEach(() => {
-    mockServices = createMockServices();
-    command = new WatchCommand();
-  });
-  
-  it('should create mapping for valid repository', async () => {
-    const args = { owner: 'microsoft', repo: 'vscode' };
-    const context = createMockContext();
-    
-    mockServices.mappingManager.validateRepository = jest.fn()
-      .mockResolvedValue(true);
-    
-    const result = await command.execute(args, context, mockServices);
-    
-    expect(result.success).toBe(true);
-    expect(result.message).toContain('監視を開始しました');
-  });
-  
-  it('should reject invalid repository', async () => {
-    const args = { owner: 'invalid', repo: 'repo' };
-    const context = createMockContext();
-    
-    mockServices.mappingManager.validateRepository = jest.fn()
-      .mockResolvedValue(false);
-    
-    const result = await command.execute(args, context, mockServices);
-    
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('リポジトリが見つかりません');
-  });
-});
-```
+#### EnhancedStore
+- コメントマッピングの検索
+- コメントマッピングの更新
+- コメントマッピングの削除
 
 ### 統合テスト
 
-```typescript
-describe('Command Integration', () => {
-  let bot: Bot;
-  let testGuild: Guild;
-  
-  beforeAll(async () => {
-    bot = new Bot();
-    await bot.start();
-    testGuild = await createTestGuild();
-  });
-  
-  afterAll(async () => {
-    await cleanupTestGuild(testGuild);
-    await bot.shutdown();
-  });
-  
-  it('should handle full watch/unwatch cycle', async () => {
-    // 1. watchコマンド実行
-    const watchResult = await executeCommand(
-      '!watch microsoft typescript',
-      testGuild
-    );
-    expect(watchResult).toContain('監視を開始');
+#### シナリオ1: コメント編集の完全フロー
+1. Mock GitHub Webhook 送信（edited）
+2. Discord メッセージ削除の確認
+3. 新規メッセージ投稿の確認
+4. マッピング更新の確認
+
+#### シナリオ2: コメント削除の完全フロー
+1. Mock GitHub Webhook 送信（deleted）
+2. Discord メッセージ削除の確認
+3. マッピング削除の確認
+
+#### シナリオ3: エラーリカバリー
+1. Discord API エラーのシミュレーション
+2. リトライ動作の確認
+3. フォールバック処理の確認
+
+### E2E テスト
+
+実際の GitHub リポジトリと Discord サーバーを使用した動作確認：
+1. GitHub でコメント作成 → Discord 表示確認
+2. GitHub でコメント編集 → Discord 更新確認
+3. GitHub でコメント削除 → Discord 削除確認
+
+## 実装の詳細設計
+
+### handleIssueCommentEdited の処理フロー
+
+```mermaid
+sequenceDiagram
+    participant GH as GitHub
+    participant WH as WebhookHandler
+    participant ST as Store
+    participant DA as DiscordActions
+    participant DC as Discord
+
+    GH->>WH: Webhook (edited)
+    WH->>ST: getThreadByNodeId()
+    ST-->>WH: thread
     
-    // 2. listコマンドで確認
-    const listResult = await executeCommand('!list', testGuild);
-    expect(listResult).toContain('microsoft/typescript');
-    
-    // 3. unwatchコマンド実行
-    const unwatchResult = await executeCommand(
-      '!unwatch microsoft typescript',
-      testGuild
-    );
-    expect(unwatchResult).toContain('監視を停止');
-  });
-});
+    alt Thread found
+        WH->>ST: findCommentByGitId()
+        ST-->>WH: comment mapping
+        
+        alt Mapping found
+            WH->>DA: deleteMessage()
+            DA->>DC: DELETE /messages/{id}
+            DC-->>DA: success/failure
+            
+            alt Delete success
+                WH->>DA: createComment()
+                DA->>DC: POST webhook
+                DC-->>DA: new message
+                WH->>ST: updateCommentMapping()
+            else Delete failed
+                WH->>WH: Log error
+                Note over WH: 編集通知を投稿（将来実装）
+            end
+        else Mapping not found
+            WH->>WH: Log warning
+        end
+    else Thread not found
+        WH->>WH: Log warning
+    end
 ```
 
-## パフォーマンス最適化
+### handleIssueCommentDeleted の処理フロー
 
-### 非同期処理とキューイング
+```mermaid
+sequenceDiagram
+    participant GH as GitHub
+    participant WH as WebhookHandler
+    participant ST as Store
+    participant DA as DiscordActions
+    participant DC as Discord
 
-```typescript
-class SyncQueue {
-  private queue: Array<() => Promise<void>> = [];
-  private processing = false;
-  
-  async add(task: () => Promise<void>): Promise<void> {
-    this.queue.push(task);
-    if (!this.processing) {
-      await this.process();
-    }
-  }
-  
-  private async process(): Promise<void> {
-    this.processing = true;
+    GH->>WH: Webhook (deleted)
+    WH->>ST: getThreadByNodeId()
+    ST-->>WH: thread
     
-    while (this.queue.length > 0) {
-      const task = this.queue.shift()!;
-      try {
-        await task();
-      } catch (error) {
-        logger.error('Queue task failed', error as Error);
-      }
-    }
-    
-    this.processing = false;
-  }
-}
+    alt Thread found
+        WH->>ST: findCommentByGitId()
+        ST-->>WH: comment mapping
+        
+        alt Mapping found
+            WH->>DA: deleteMessage()
+            DA->>DC: DELETE /messages/{id}
+            DC-->>DA: success/failure
+            
+            alt Delete success
+                WH->>ST: removeCommentMapping()
+            else Delete failed
+                WH->>WH: Log error
+            end
+        else Mapping not found
+            WH->>WH: Log warning
+        end
+    else Thread not found
+        WH->>WH: Log warning
+    end
 ```
 
-### API レート制限の管理
+## 設計上の決定事項と根拠
 
-```typescript
-class RateLimiter {
-  private requests: number[] = [];
-  private readonly limit: number;
-  private readonly window: number; // ミリ秒
-  
-  constructor(limit: number, windowMinutes: number) {
-    this.limit = limit;
-    this.window = windowMinutes * 60 * 1000;
-  }
-  
-  async checkLimit(): Promise<boolean> {
-    const now = Date.now();
-    this.requests = this.requests.filter(t => now - t < this.window);
-    
-    if (this.requests.length >= this.limit) {
-      return false;
-    }
-    
-    this.requests.push(now);
-    return true;
-  }
-  
-  getResetTime(): Date {
-    if (this.requests.length === 0) {
-      return new Date();
-    }
-    const oldest = Math.min(...this.requests);
-    return new Date(oldest + this.window);
-  }
-}
-```
+### 1. メッセージ編集を「削除＋新規投稿」で実装する理由
+- **制約**: Discord Webhook API ではメッセージの編集が不可能
+- **代替案検討**:
+  - BOTメッセージとして投稿 → ユーザーアバターが使用できない
+  - 編集通知のみ投稿 → ユーザー体験が劣る
+- **決定**: ユーザー体験を優先し、削除＋新規投稿を採用
+
+### 2. コメントマッピングの更新戦略
+- **課題**: 新しいメッセージIDへの更新が必要
+- **決定**: トランザクション的な更新（削除成功後のみ更新）
+
+### 3. エラー時のフォールバック
+- **課題**: メッセージ削除に失敗する可能性
+- **決定**: 削除失敗時は編集通知を投稿（将来実装）
+
+## パフォーマンスとスケーラビリティ
+
+### 最適化ポイント
+1. **コメントマッピングのキャッシュ**: メモリ内でのO(1)アクセス
+2. **並行処理**: 独立したイベントは並行処理可能
+3. **バッチ処理**: 将来的に複数イベントをまとめて処理
+
+### ボトルネック対策
+- Discord API レート制限 → リクエストキューイング
+- メモリ使用量 → 古いマッピングの定期クリーンアップ
 
 ## セキュリティ考慮事項
 
-### 入力検証
+1. **認証・認可**
+   - GitHub Webhook シークレットの検証（既存実装）
+   - Discord BOT トークンの安全な管理（環境変数）
 
-```typescript
-class InputValidator {
-  static validateRepoOwner(owner: string): boolean {
-    // GitHub のユーザー名/組織名の規則
-    const pattern = /^[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,37}[a-zA-Z0-9])?$/;
-    return pattern.test(owner);
-  }
-  
-  static validateRepoName(name: string): boolean {
-    // GitHub のリポジトリ名の規則
-    const pattern = /^[a-zA-Z0-9._-]{1,100}$/;
-    return pattern.test(name);
-  }
-  
-  static sanitizeInput(input: string): string {
-    // 基本的なサニタイゼーション
-    return input.trim().replace(/[<>]/g, '');
-  }
-}
-```
+2. **データ保護**
+   - ユーザー情報のログ出力を最小限に
+   - エラーメッセージに機密情報を含めない
 
-## 実装の優先順位
-
-### Phase 1: 基本機能
-1. CommandManager の実装
-2. BaseCommand クラスの実装
-3. WatchCommand の実装
-4. DynamicMappingManager の基本実装
-5. ConfigPersistence の実装
-
-### Phase 2: 完全な機能セット
-1. UnwatchCommand の実装
-2. ListCommand の実装
-3. 初期同期機能の実装
-4. エラーハンドリングの強化
-
-### Phase 3: 最適化と改善
-1. レート制限の実装
-2. キューイングシステムの実装
-3. 詳細なログとメトリクス
-4. パフォーマンス最適化
-
-## 移行計画
-
-### 既存システムとの統合
-
-1. **既存のBotクラスへの統合**
-   - CommandManager を Bot クラスに追加
-   - messageCreate イベントハンドラーを拡張
-   - クライアント初期化時にスラッシュコマンドを登録
-
-2. **MultiStore の拡張**
-   - 動的な追加/削除メソッドを実装
-   - 実行時の更新をサポート
-
-3. **ConfigManager の拡張**
-   - 設定の動的更新メソッドを追加
-   - ファイルロック機構の実装
-
-### 下位互換性の維持
-
-- 既存のマッピング形式との互換性を維持
-- 新しいフィールドはオプショナルとして追加
-- 段階的な機能追加により既存の動作に影響を与えない
-
-## 監視とログ
-
-### ログレベルと内容
-
-```typescript
-// コマンド実行のログ
-logger.info('Command executed', {
-  command: commandName,
-  user: userId,
-  guild: guildId,
-  args: sanitizedArgs,
-  result: result.success
-});
-
-// エラーログ
-logger.error('Command failed', {
-  command: commandName,
-  error: error.message,
-  stack: error.stack,
-  context: contextInfo
-});
-
-// メトリクスログ
-logger.info('Sync completed', {
-  mapping: mappingId,
-  issuesSynced: count,
-  duration: durationMs,
-  errors: errorCount
-});
-```
-
-### ヘルスチェック拡張
-
-```typescript
-interface CommandHealthMetrics {
-  commandsExecuted: number;
-  commandsSucceeded: number;
-  commandsFailed: number;
-  averageResponseTime: number;
-  lastCommandTime: Date;
-  activeSync: number;
-}
-```
-
-## まとめ
-
-この設計により、Discord コマンドを通じた動的なリポジトリ監視管理が可能になります。既存のアーキテクチャに統合しながら、拡張性とメンテナンス性を確保した実装を目指します。
+3. **入力検証**
+   - Webhook ペイロードの構造検証
+   - 不正なデータによる処理の中断

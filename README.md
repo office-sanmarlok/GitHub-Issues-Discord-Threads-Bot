@@ -56,12 +56,7 @@ cd GitHub-Issues-Discord-Threads-Bot
 npm install
 ```
 
-2. **レガシー設定から移行**（アップグレードの場合）
-```bash
-npm run migrate
-```
-
-3. **設定**（`config.json`）
+2. **設定**（`config.json`）
 ```json
 {
   "discord_token": "YOUR_DISCORD_BOT_TOKEN",
@@ -83,17 +78,17 @@ npm run migrate
 }
 ```
 
-4. **ボットを実行**
+3. **ボットを実行**
 ```bash
 # 開発環境
-npm run dev:enhanced
+npm run dev
 
 # 本番環境
-npm run build:tsc
-npm run start:enhanced
+npm run build
+npm start
 ```
 
-5. **GitHub Webhook を設定**
+4. **GitHub Webhook を設定**
 
 各リポジトリで：
 - Settings → Webhooks → Add webhook
@@ -110,13 +105,9 @@ npm run start:enhanced
   - [設定リファレンス](docs/guides/CONFIG.md)
   
 - **開発**
-  - [移行ガイド](docs/guides/MIGRATION.md)
-  - [要件定義](docs/planning/requirements.md)
-  - [設計ドキュメント](docs/planning/design.md)
-  - [実装タスク](docs/planning/tasks.md)
-  
-- **レガシー**
-  - [シングルリポジトリ版](docs/legacy/README.legacy.md)
+  - [要件定義](docs/requirements.md)
+  - [設計ドキュメント](docs/design.md)
+  - [実装タスク](docs/tasks.md)
 
 ## 🏗️ アーキテクチャ
 
@@ -184,15 +175,6 @@ npm test              # テスト実行
 npm run test:watch    # ウォッチモード
 npm run test:coverage # カバレッジレポート
 ```
-
-## 🔄 シングルリポジトリからの移行
-
-シングルリポジトリ版からアップグレードする場合：
-
-1. 移行スクリプトを実行: `npm run migrate`
-2. 生成された `config.json` を確認・編集
-3. テスト: `npm run dev:enhanced`
-4. GitHub Webhook URL を更新
 
 ## 🛠️ サーバー管理
 

@@ -159,9 +159,51 @@ export class GitHubWebhookHandlers {
 
     context.logger.info(`GitHub webhook: Comment edited on issue #${issue.number}`);
     
-    // For now, we'll log this but not sync edits to Discord
-    // This could be enhanced to edit Discord messages in the future
-    context.logger.debug('Comment edit synchronization not implemented');
+    // Check if comment is from the bot itself (avoid loops)
+    if (comment.body?.includes('`BOT`')) {
+      context.logger.debug('Skipping bot-generated comment edit');
+      return;
+    }
+
+    // Find the thread by node_id
+    const thread = context.store.getThreadByNodeId(issue.node_id);
+    if (!thread) {
+      context.logger.warn(`Thread not found for issue #${issue.number} (node_id: ${issue.node_id})`);
+      return;
+    }
+
+    // Find the comment mapping
+    const commentMapping = context.store.findCommentByGitId(thread.id, comment.id);
+    if (!commentMapping) {
+      context.logger.warn(`Comment mapping not found for GitHub comment ${comment.id}`);
+      return;
+    }
+
+    // Delete the old message
+    const deleteSuccess = await this.discordActions.deleteMessage(
+      context,
+      commentMapping.id,
+      thread.id
+    );
+
+    if (!deleteSuccess) {
+      context.logger.error(`Failed to delete old message ${commentMapping.id} for comment ${comment.id}`);
+      // If deletion fails, we still try to post the update as a fallback
+      context.logger.info('Posting edited comment as a new message (fallback)');
+    }
+
+    // Create a new comment with the updated content
+    await this.discordActions.createComment(context, {
+      git_id: comment.id,
+      body: comment.body || '',
+      login: comment.user?.login || 'unknown',
+      avatar_url: comment.user?.avatar_url || '',
+      node_id: issue.node_id
+    });
+
+    // Update the comment mapping with the new message ID
+    // Note: The createComment method should have already updated the mapping
+    context.logger.info(`Successfully synchronized edited comment ${comment.id} for issue #${issue.number}`);
   }
 
   /**
@@ -174,22 +216,37 @@ export class GitHubWebhookHandlers {
 
     context.logger.info(`GitHub webhook: Comment deleted on issue #${issue.number}`);
 
-    // Find the thread and comment mapping
-    const thread = context.store.threads.find(t => t.node_id === issue.node_id);
+    // Find the thread by node_id
+    const thread = context.store.getThreadByNodeId(issue.node_id);
     if (!thread) {
-      context.logger.warn(`Thread not found for issue #${issue.number}`);
+      context.logger.warn(`Thread not found for issue #${issue.number} (node_id: ${issue.node_id})`);
       return;
     }
 
-    const commentMapping = thread.comments.find(c => c.git_id === comment.id);
+    // Find the comment mapping
+    const commentMapping = context.store.findCommentByGitId(thread.id, comment.id);
     if (!commentMapping) {
       context.logger.warn(`Comment mapping not found for GitHub comment ${comment.id}`);
       return;
     }
 
-    // For now, we'll log this but not delete Discord messages
-    // Discord message deletion is typically handled from Discord side
-    context.logger.debug('Comment deletion from GitHub not synced to Discord');
+    // Delete the Discord message
+    const deleteSuccess = await this.discordActions.deleteMessage(
+      context,
+      commentMapping.id,
+      thread.id
+    );
+
+    if (deleteSuccess) {
+      // Remove the comment mapping from the store
+      context.store.removeCommentMapping(thread.id, comment.id);
+      context.logger.info(`Successfully deleted Discord message for GitHub comment ${comment.id}`);
+    } else {
+      context.logger.error(`Failed to delete Discord message ${commentMapping.id} for GitHub comment ${comment.id}`);
+    }
+
+    // Update metrics
+    context.store.updateMetrics('deleted');
   }
 
   /**

@@ -83,7 +83,8 @@ export class ConfigManager {
     if (!config.mappings || !Array.isArray(config.mappings)) {
       errors.push({ field: 'mappings', message: 'Mappings array is required' });
     } else if (config.mappings.length === 0) {
-      errors.push({ field: 'mappings', message: 'At least one mapping is required' });
+      // Changed from error to warning - allow empty mappings
+      warnings.push('No repository mappings configured. Use !watch command to add mappings dynamically.');
     } else {
       // Validate each mapping
       const mappingIds = new Set<string>();

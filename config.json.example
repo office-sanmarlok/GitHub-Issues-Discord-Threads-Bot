@@ -4,40 +4,7 @@
   "webhook_port": 5000,
   "webhook_path": "/webhook",
   "log_level": "info",
+  "forum_category_id": "YOUR_DISCORD_FORUM_CATEGORY_ID",
   "health_check_interval": 60000,
-  "mappings": [
-    {
-      "id": "project-frontend",
-      "channel_id": "1234567890123456789",
-      "repository": {
-        "owner": "your-github-username",
-        "name": "frontend-repo"
-      },
-      "webhook_secret": "optional_webhook_secret_for_security",
-      "enabled": true,
-      "options": {
-        "sync_labels": true,
-        "sync_assignees": false
-      }
-    },
-    {
-      "id": "project-backend",
-      "channel_id": "9876543210987654321",
-      "repository": {
-        "owner": "your-github-username",
-        "name": "backend-repo"
-      },
-      "enabled": true
-    },
-    {
-      "id": "project-docs",
-      "channel_id": "1111111111111111111",
-      "repository": {
-        "owner": "your-org-name",
-        "name": "documentation"
-      },
-      "webhook_secret": "another_optional_secret",
-      "enabled": false
-    }
-  ]
+  "mappings": []
 }

@@ -94,16 +94,14 @@ export class DiscordActions {
 
       const message = await webhook.send(messagePayload.resolveBody());
       
-      // Store comment mapping
-      thread.comments.push({
-        id: message.id,
-        git_id: data.git_id
-      });
+      // Store or update comment mapping using the store's method
+      // This handles both new comments and edited comments
+      context.store.updateCommentMapping(thread.id, data.git_id, message.id);
 
       // Clean up webhook
       await webhook.delete("Cleanup after comment");
 
-      context.logger.info(`Created Discord comment in thread ${thread.id}`);
+      context.logger.info(`Created Discord comment in thread ${thread.id} (message: ${message.id}, git_id: ${data.git_id})`);
     } catch (error) {
       context.logger.error(`Failed to create Discord comment: ${(error as Error).message}`);
     }
@@ -291,6 +289,74 @@ export class DiscordActions {
       context.logger.info(`Updated Discord thread title to: ${title}`);
     } catch (error) {
       context.logger.error(`Failed to update thread title: ${(error as Error).message}`);
+    }
+  }
+
+  /**
+   * Delete a Discord message
+   * @param context - Mapping context
+   * @param messageId - Discord message ID to delete
+   * @param channelId - Discord channel/thread ID containing the message
+   * @returns true if deletion succeeded, false otherwise
+   */
+  async deleteMessage(
+    context: MappingContext,
+    messageId: string,
+    channelId: string
+  ): Promise<boolean> {
+    try {
+      const channel = await this.client.channels.fetch(channelId);
+      if (!channel || !channel.isTextBased()) {
+        context.logger.error(`Channel ${channelId} is not a text-based channel`);
+        return false;
+      }
+
+      const message = await channel.messages.fetch(messageId);
+      if (!message) {
+        context.logger.warn(`Message ${messageId} not found in channel ${channelId}`);
+        return false;
+      }
+
+      // Check if message was sent by webhook or bot can delete it
+      if (message.webhookId) {
+        // Webhook messages require special handling
+        // Try to delete using bot permissions
+        if (message.deletable) {
+          await message.delete();
+          context.logger.info(`Deleted webhook message ${messageId} in channel ${channelId}`);
+          return true;
+        } else {
+          context.logger.error(`Cannot delete webhook message ${messageId} - insufficient permissions`);
+          return false;
+        }
+      } else {
+        // Regular message deletion
+        await message.delete();
+        context.logger.info(`Deleted message ${messageId} in channel ${channelId}`);
+        return true;
+      }
+    } catch (error) {
+      const err = error as Error;
+      context.logger.error(`Failed to delete message ${messageId}: ${err.message}`);
+      
+      // Check for specific Discord API errors
+      if ('code' in err && typeof err.code === 'number') {
+        switch (err.code) {
+          case 10008: // Unknown Message
+            context.logger.warn(`Message ${messageId} no longer exists`);
+            break;
+          case 50001: // Missing Access
+            context.logger.error(`Bot lacks access to channel ${channelId}`);
+            break;
+          case 50013: // Missing Permissions
+            context.logger.error(`Bot lacks permission to delete message ${messageId}`);
+            break;
+          default:
+            context.logger.error(`Discord API error code ${err.code}`);
+        }
+      }
+      
+      return false;
     }
   }
 }

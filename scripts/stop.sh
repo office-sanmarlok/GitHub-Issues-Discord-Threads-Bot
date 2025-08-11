@@ -30,20 +30,27 @@ if [ -f "bot.pid" ]; then
     fi
 fi
 
-# Check for running process
-PID=$(pgrep -f "EnhancedIndex")
+# Check for process using port 5000
+PID=$(lsof -Pi :5000 -sTCP:LISTEN -t 2>/dev/null)
 if [ ! -z "$PID" ]; then
-    echo "✅ Found running bot process: $PID"
+    echo "✅ Found bot process using port 5000: $PID"
     kill $PID
+    # Update PID file if exists
+    if [ -f "bot.pid" ]; then
+        rm bot.pid
+    fi
     echo "✅ Bot stopped successfully!"
     exit 0
 fi
 
-# Fallback - check for any node process with our bot
-PID=$(ps aux | grep -E "node.*Enhanced" | grep -v grep | awk '{print $2}')
+# Check for running node dist/index.js process
+PID=$(pgrep -f "node dist/index.js")
 if [ ! -z "$PID" ]; then
-    echo "✅ Found Node.js process: $PID"
+    echo "✅ Found running bot process: $PID"
     kill $PID
+    if [ -f "bot.pid" ]; then
+        rm bot.pid
+    fi
     echo "✅ Bot stopped successfully!"
     exit 0
 fi
